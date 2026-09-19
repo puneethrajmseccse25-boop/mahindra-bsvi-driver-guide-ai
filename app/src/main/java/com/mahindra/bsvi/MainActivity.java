@@ -107,27 +107,61 @@ public class MainActivity extends Activity {
                 int code = 0;
                 String response;
                 try {
-                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-                    c.setRequestMethod(method == null ? "GET" : method.toUpperCase(Locale.US));
-                    c.setConnectTimeout(20000);
-                    c.setReadTimeout(30000);
-                    c.setInstanceFollowRedirects(true);
-                    c.setRequestProperty("Accept", "application/json");
-                    if ("POST".equalsIgnoreCase(method)) {
-                        c.setDoOutput(true);
-                        c.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
-                        byte[] data = (body == null ? "" : body).getBytes(StandardCharsets.UTF_8);
-                        try (OutputStream os = c.getOutputStream()) { os.write(data); }
+                    String currentUrl = url;
+                    String requestMethod = method == null ? "GET" : method.toUpperCase(Locale.US);
+                    byte[] data = (body == null ? "" : body).getBytes(StandardCharsets.UTF_8);
+                    response = "";
+
+                    // Google Apps Script ContentService commonly returns an HTTP redirect
+                    // to script.googleusercontent.com. Android's automatic redirect handling
+                    // can turn a POST into a GET, which loses the JSON login request. Follow
+                    // redirects manually while preserving the original POST method/body.
+                    for (int redirect = 0; redirect < 6; redirect++) {
+                        HttpURLConnection c = (HttpURLConnection) new URL(currentUrl).openConnection();
+                        c.setRequestMethod(requestMethod);
+                        c.setConnectTimeout(20000);
+                        c.setReadTimeout(30000);
+                        c.setInstanceFollowRedirects(false);
+                        c.setRequestProperty("Accept", "application/json, text/plain, */*");
+                        c.setRequestProperty("User-Agent", "MahindraBSVI-DriverGuideAI/1.0");
+
+                        if ("POST".equals(requestMethod)) {
+                            c.setDoOutput(true);
+                            c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                            c.setFixedLengthStreamingMode(data.length);
+                            try (OutputStream os = c.getOutputStream()) { os.write(data); }
+                        }
+
+                        code = c.getResponseCode();
+                        if (code == HttpURLConnection.HTTP_MOVED_PERM
+                                || code == HttpURLConnection.HTTP_MOVED_TEMP
+                                || code == HttpURLConnection.HTTP_SEE_OTHER
+                                || code == 307 || code == 308) {
+                            String location = c.getHeaderField("Location");
+                            c.disconnect();
+                            if (location == null || location.trim().isEmpty()) {
+                                response = "{\"ok\":false,\"code\":" + code + ",\"error\":\"Backend redirect had no Location header.\"}";
+                                break;
+                            }
+                            currentUrl = new URL(new URL(currentUrl), location).toString();
+                            continue;
+                        }
+
+                        InputStreamReader reader = new InputStreamReader(
+                                code >= 400 ? c.getErrorStream() : c.getInputStream(), StandardCharsets.UTF_8);
+                        BufferedReader br = new BufferedReader(reader);
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) sb.append(line);
+                        br.close();
+                        response = sb.toString();
+                        c.disconnect();
+                        break;
                     }
-                    code = c.getResponseCode();
-                    BufferedReader br = new BufferedReader(new InputStreamReader(
-                            code >= 400 ? c.getErrorStream() : c.getInputStream(), StandardCharsets.UTF_8));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) sb.append(line);
-                    br.close();
-                    response = sb.toString();
-                    c.disconnect();
+
+                    if (response == null || response.trim().isEmpty()) {
+                        response = "{\"ok\":false,\"code\":" + code + ",\"error\":\"Backend returned an empty response.\"}";
+                    }
                 } catch (Exception e) {
                     response = "{\"ok\":false,\"code\":0,\"error\":\"Network error: " +
                             escapeJson(e.getMessage()) + "\"}";
