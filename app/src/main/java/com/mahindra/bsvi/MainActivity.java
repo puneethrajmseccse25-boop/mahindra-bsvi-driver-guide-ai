@@ -143,7 +143,18 @@ public class MainActivity extends Activity {
                                 response = "{\"ok\":false,\"code\":" + code + ",\"error\":\"Backend redirect had no Location header.\"}";
                                 break;
                             }
+
+                            // Apps Script ContentService returns the JSON result through a
+                            // one-time script.googleusercontent.com URL. For the normal 301/302/303
+                            // redirect, the redirected request must be GET; the original POST has
+                            // already been executed by Apps Script. Only 307/308 preserve POST.
                             currentUrl = new URL(new URL(currentUrl), location).toString();
+                            if (code == HttpURLConnection.HTTP_MOVED_PERM
+                                    || code == HttpURLConnection.HTTP_MOVED_TEMP
+                                    || code == HttpURLConnection.HTTP_SEE_OTHER) {
+                                requestMethod = "GET";
+                                data = new byte[0];
+                            }
                             continue;
                         }
 
