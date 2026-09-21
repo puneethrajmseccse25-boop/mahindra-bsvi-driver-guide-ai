@@ -76,24 +76,24 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
 
-                // Replace the brittle response parser in the packaged HTML.
-                // Apps Script may return a JSON body, an object, or an HTML
-                // error page after its redirect/session flow.
+                // Normalize Apps Script responses before the existing HTML parser sees them.
                 view.evaluateJavascript(
-                        "(function(){window.appHttpResult=function(raw){"
-                                + "var result;"
+                        "(function(){window.__mahindraNormalizeResponse=function(raw){"
                                 + "try{"
-                                + "var outer=(typeof raw==='string')?JSON.parse(raw):raw;"
-                                + "var body=outer&&outer.body;"
-                                + "if(typeof body==='string'){"
-                                + "try{result=JSON.parse(body||'{}');}"
-                                + "catch(e){result={ok:false,code:(outer&&outer.code)||0,error:'Backend returned non-JSON response (HTTP '+((outer&&outer.code)||0)+').',details:body.slice(0,800)};}"
-                                + "}else if(body&&typeof body==='object'){result=body;}"
-                                + "else if(outer&&typeof outer==='object'&&('ok' in outer)){result=outer;}"
-                                + "else{throw new Error('Empty backend response (HTTP '+((outer&&outer.code)||0)+')');}"
-                                + "}catch(e){result={ok:false,code:0,error:'Backend response error: '+(e.message||e),details:String(raw).slice(0,800)};}"
-                                + "if(window.__mahindraPending){var cb=window.__mahindraPending;window.__mahindraPending=null;cb(result);}"
-                                + "};})();",
+                                + "var o=(typeof raw==='string')?JSON.parse(raw):raw;"
+                                + "var b=o&&o.body;"
+                                + "if(typeof b==='string'){"
+                                + "try{JSON.parse(b||'{}');return raw;}"
+                                + "catch(e){"
+                                + "var err={ok:false,code:(o&&o.code)||0,error:'Backend returned non-JSON response (HTTP '+((o&&o.code)||0)+').',details:b.slice(0,800)};"
+                                + "return JSON.stringify({code:(o&&o.code)||0,body:JSON.stringify(err)});"
+                                + "}"
+                                + "}"
+                                + "return raw;"
+                                + "}catch(e){"
+                                + "var err={ok:false,code:0,error:'Backend response error: '+(e.message||e),details:String(raw).slice(0,800)};"
+                                + "return JSON.stringify({code:0,body:JSON.stringify(err)});"
+                                + "}};})();",
                         null
                 );
             }
@@ -384,9 +384,9 @@ public class MainActivity extends Activity {
                                     + "}";
 
                     web.evaluateJavascript(
-                            "window.appHttpResult && window.appHttpResult("
+                            "window.appHttpResult && window.appHttpResult(window.__mahindraNormalizeResponse("
                                     + JSONObject.quote(payload)
-                                    + ")",
+                                    + "))",
                             null
                     );
                 });
