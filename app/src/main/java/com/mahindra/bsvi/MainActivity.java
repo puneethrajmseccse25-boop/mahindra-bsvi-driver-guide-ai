@@ -10,6 +10,7 @@ import android.provider.MediaStore;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -47,6 +48,7 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private SpeechRecognizer speechRecognizer;
+    private TextToSpeech textToSpeech;
     private ValueCallback<Uri[]> fileCallback;
     private Uri cameraUri;
 
@@ -58,6 +60,7 @@ public class MainActivity extends Activity {
         setContentView(web);
 
         configureWebView();
+        textToSpeech = new TextToSpeech(this, status -> { });
 
         web.loadUrl("file:///android_asset/index.html");
     }
@@ -470,6 +473,25 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void speakText(String text, String locale) {
+            runOnUiThread(() -> {
+                try {
+                    if (textToSpeech == null) textToSpeech = new TextToSpeech(MainActivity.this, status -> {});
+                    int status = textToSpeech.setLanguage(new Locale(
+                            locale != null && locale.startsWith("hi") ? "hi" :
+                            locale != null && locale.startsWith("kn") ? "kn" : "en", "IN"));
+                    if (status == TextToSpeech.LANG_MISSING_DATA || status == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        sendSpeechError("Text-to-speech language is not available.");
+                        return;
+                    }
+                    textToSpeech.speak(text == null ? "" : text, TextToSpeech.QUEUE_FLUSH, null, "mahindra_read_steps");
+                } catch (Exception e) {
+                    sendSpeechError("Text-to-speech could not start.");
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void startSpeech(String locale) {
 
             runOnUiThread(() ->
@@ -594,6 +616,10 @@ public class MainActivity extends Activity {
 
         if (speechRecognizer != null) {
             speechRecognizer.destroy();
+        }
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
         }
 
         speechRecognizer =
