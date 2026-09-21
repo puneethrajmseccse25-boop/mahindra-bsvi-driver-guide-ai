@@ -15,8 +15,9 @@ new = '''view.evaluateJavascript(
                         "(function(){var s=document.createElement('script');s.src='file:///android_asset/app_shell.js';s.onload=function(){var f=document.createElement('script');f.src='file:///android_asset/startup_fix.js';document.head.appendChild(f);};document.head.appendChild(s);})();",
                         null
                 );'''
-if old not in java:
+if old in java:
+    java = java.replace(old, new, 1)
+elif new not in java:
     raise RuntimeError("app_shell injection block not found")
-java = java.replace(old, new, 1)
 java_path.write_text(java, encoding="utf-8")
 print("startup login fix applied")
