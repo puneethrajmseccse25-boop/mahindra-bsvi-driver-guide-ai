@@ -197,84 +197,66 @@ public class MainActivity extends Activity {
                 String url,
                 String body
         ) {
-
             new Thread(() -> {
-
                 int code = 0;
                 String response = "";
 
                 try {
-
                     String currentUrl = url;
+                    String requestMethod = method == null
+                            ? "GET"
+                            : method.toUpperCase(Locale.US);
 
-                    String requestMethod =
-                            method == null
-                                    ? "GET"
-                                    : method.toUpperCase(Locale.US);
-
-                    byte[] data =
-                            (body == null ? "" : body)
-                                    .getBytes(StandardCharsets.UTF_8);
+                    byte[] data = (body == null ? "" : body)
+                            .getBytes(StandardCharsets.UTF_8);
 
                     /*
-                     * Google Apps Script web apps can return
-                     * redirects before returning the actual response.
-                     *
-                     * We follow those redirects manually.
-                     *
-                     * IMPORTANT:
-                     * For 301/302/303 responses, browsers normally
-                     * change POST into GET. We do the same here.
+                     * Google Apps Script ContentService uses a redirect/session
+                     * flow. The important rules are:
+                     * 1. Do not convert the login POST into GET.
+                     * 2. Preserve the S session cookie returned by Google.
+                     * 3. Handle the X-If-No-Redirect / 412 flow.
                      */
+                    String cookie = null;
 
-                    for (int redirect = 0; redirect < 6; redirect++) {
-
+                    for (int redirect = 0; redirect < 8; redirect++) {
                         HttpURLConnection c =
-                                (HttpURLConnection)
-                                        new URL(currentUrl)
-                                                .openConnection();
+                                (HttpURLConnection) new URL(currentUrl).openConnection();
 
                         c.setRequestMethod(requestMethod);
-
                         c.setConnectTimeout(20000);
                         c.setReadTimeout(30000);
-
-                        /*
-                         * We handle redirects ourselves.
-                         */
                         c.setInstanceFollowRedirects(false);
 
                         c.setRequestProperty(
                                 "Accept",
                                 "application/json, text/plain, */*"
                         );
-
                         c.setRequestProperty(
                                 "User-Agent",
                                 "MahindraBSVI-DriverGuideAI/1.0"
                         );
+                        c.setRequestProperty("Accept-Encoding", "identity");
 
-                        c.setRequestProperty(
-                                "Accept-Encoding",
-                                "identity"
-                        );
+                        /*
+                         * Ask Apps Script not to perform its redirect for us.
+                         * It can return 412 + X-Redirect-Location + S cookie.
+                         */
+                        c.setRequestProperty("X-If-No-Redirect", "1");
+
+                        if (cookie != null && !cookie.isEmpty()) {
+                            c.setRequestProperty("Cookie", cookie);
+                        }
 
                         if ("POST".equals(requestMethod)) {
-
                             c.setDoOutput(true);
-
                             c.setRequestProperty(
                                     "Content-Type",
                                     "application/json; charset=utf-8"
                             );
+                            c.setFixedLengthStreamingMode(data.length);
 
-                            c.setFixedLengthStreamingMode(
-                                    data.length
-                            );
-
-                            try (OutputStream os =
-                                         c.getOutputStream()) {
-
+                            try (OutputStream os = c.getOutputStream()) {
                                 os.write(data);
                                 os.flush();
                             }
@@ -283,71 +265,51 @@ public class MainActivity extends Activity {
                         code = c.getResponseCode();
 
                         /*
-                         * Google Apps Script redirect handling.
-                         *
-                         * 301 / 302 / 303:
-                         * POST becomes GET.
-                         *
-                         * 307 / 308:
-                         * preserve the original method/body.
+                         * Keep Google's session cookie. In particular this is
+                         * normally the S cookie used for Apps Script sessions.
                          */
-                        if (code ==
-                                HttpURLConnection.HTTP_MOVED_PERM
-                                || code ==
-                                HttpURLConnection.HTTP_MOVED_TEMP
-                                || code ==
-                                HttpURLConnection.HTTP_SEE_OTHER
-                                || code == 307
-                                || code == 308) {
+                        String setCookie = c.getHeaderField("Set-Cookie");
+                        if (setCookie != null && !setCookie.trim().isEmpty()) {
+                            cookie = extractCookiePair(setCookie);
+                        }
 
-                            String location =
-                                    c.getHeaderField("Location");
-
-                            c.disconnect();
-
-                            if (location == null
-                                    || location.trim().isEmpty()) {
-
-                                response =
-                                        "{\"ok\":false,\"code\":"
-                                                + code
-                                                + ",\"error\":\"Backend redirect had no Location header.\"}";
-
-                                break;
-                            }
-
-                            currentUrl =
-                                    new URL(
-                                            new URL(currentUrl),
-                                            location
-                                    ).toString();
-
-                            /*
-                             * Critical fix:
-                             *
-                             * Google Apps Script commonly sends
-                             * 302/303 after POST.
-                             *
-                             * Follow that redirect as GET.
-                             */
-                            if (code ==
-                                    HttpURLConnection.HTTP_MOVED_PERM
-                                    || code ==
-                                    HttpURLConnection.HTTP_MOVED_TEMP
-                                    || code ==
-                                    HttpURLConnection.HTTP_SEE_OTHER) {
-
-                                requestMethod = "GET";
-
-                                data = new byte[0];
-                            }
-
-                            continue;
+                        String location = c.getHeaderField("X-Redirect-Location");
+                        if (location == null || location.trim().isEmpty()) {
+                            location = c.getHeaderField("Location");
                         }
 
                         /*
-                         * Read normal HTTP response.
+                         * Apps Script may answer 412 when X-If-No-Redirect is
+                         * requested, or 3xx when it performs its normal flow.
+                         * In ALL cases we preserve the original HTTP method
+                         * and body. This is the critical login fix.
                          */
+                        if (code == 412
+                                || code == HttpURLConnection.HTTP_MOVED_PERM
+                                || code == HttpURLConnection.HTTP_MOVED_TEMP
+                                || code == HttpURLConnection.HTTP_SEE_OTHER
+                                || code == 307
+                                || code == 308) {
+
+                            c.disconnect();
+
+                            if (location == null || location.trim().isEmpty()) {
+                                response =
+                                        "{\\"ok\\":false,\\"code\\":"
+                                                + code
+                                                + ",\\"error\\":\\"Backend redirect did not provide a redirect URL.\\"}";
+                                break;
+                            }
+
+                            currentUrl = new URL(
+                                    new URL(currentUrl),
+                                    location
+                            ).toString();
+
+                            // IMPORTANT: keep requestMethod and data unchanged.
+                            continue;
+                        }
+
                         InputStreamReader reader =
                                 new InputStreamReader(
                                         code >= 400
@@ -356,12 +318,8 @@ public class MainActivity extends Activity {
                                         StandardCharsets.UTF_8
                                 );
 
-                        BufferedReader br =
-                                new BufferedReader(reader);
-
-                        StringBuilder sb =
-                                new StringBuilder();
-
+                        BufferedReader br = new BufferedReader(reader);
+                        StringBuilder sb = new StringBuilder();
                         String line;
 
                         while ((line = br.readLine()) != null) {
@@ -369,48 +327,33 @@ public class MainActivity extends Activity {
                         }
 
                         br.close();
-
                         response = sb.toString();
-
                         c.disconnect();
-
                         break;
                     }
 
-                    /*
-                     * Prevent an empty response from reaching
-                     * the JavaScript parser.
-                     */
-                    if (response == null
-                            || response.trim().isEmpty()) {
-
+                    if (response == null || response.trim().isEmpty()) {
                         response =
-                                "{\"ok\":false,\"code\":"
+                                "{\\"ok\\":false,\\"code\\":"
                                         + code
-                                        + ",\"error\":\"Backend returned an empty response.\"}";
+                                        + ",\\"error\\":\\"Backend returned an empty response.\\"}";
                     }
 
                 } catch (Exception e) {
-
                     response =
-                            "{\"ok\":false,\"code\":0,\"error\":\"Network error: "
+                            "{\\"ok\\":false,\\"code\\":0,\\"error\\":\\"Network error: "
                                     + escapeJson(e.getMessage())
-                                    + "\"}";
+                                    + "\\"}";
                 }
 
                 final int resultCode = code;
                 final String resultBody = response;
 
                 web.post(() -> {
-
-                    /*
-                     * Send the HTTP status and complete response
-                     * back to JavaScript.
-                     */
                     String payload =
-                            "{\"code\":"
+                            "{\\"code\\":"
                                     + resultCode
-                                    + ",\"body\":"
+                                    + ",\\"body\\":"
                                     + JSONObject.quote(resultBody)
                                     + "}";
 
@@ -421,8 +364,15 @@ public class MainActivity extends Activity {
                             null
                     );
                 });
-
             }).start();
+        }
+
+        private String extractCookiePair(String setCookie) {
+            int semicolon = setCookie.indexOf(';');
+            String pair = semicolon >= 0
+                    ? setCookie.substring(0, semicolon)
+                    : setCookie;
+            return pair.trim();
         }
 
         @JavascriptInterface
