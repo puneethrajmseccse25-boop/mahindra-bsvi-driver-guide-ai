@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
                          */
                         String setCookie = c.getHeaderField("Set-Cookie");
                         if (setCookie != null && !setCookie.trim().isEmpty()) {
-                            cookie = extractCookiePair(setCookie);
+                            cookie = mergeCookie(cookie, extractCookiePair(setCookie));
                         }
 
                         String location = c.getHeaderField("X-Redirect-Location");
