@@ -23,6 +23,9 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Apply final UX and camera patch
+        run: python3 build/final_ux_patch.py
+
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
