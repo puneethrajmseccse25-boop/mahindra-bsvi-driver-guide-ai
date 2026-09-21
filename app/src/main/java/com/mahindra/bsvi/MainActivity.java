@@ -265,11 +265,13 @@ public class MainActivity extends Activity {
                         c.setRequestProperty("Accept-Encoding", "identity");
 
                         /*
-                         * Let Apps Script return its normal redirect. We follow
-                         * it manually below so the original POST method/body is
-                         * preserved instead of allowing HttpURLConnection to
-                         * turn POST into GET.
+                         * Ask Apps Script for its 412 redirect handoff so we
+                         * can preserve POST + body exactly. Google documents
+                         * X-If-No-Redirect for clients that manually follow
+                         * Apps Script redirects.
                          */
+                        c.setRequestProperty("X-If-No-Redirect", "1");
+
                         if (cookie != null && !cookie.isEmpty()) {
                             c.setRequestProperty("Cookie", cookie);
                         }
@@ -316,7 +318,8 @@ public class MainActivity extends Activity {
                          * Preserve the original HTTP method and body on every
                          * redirect. This is the critical login fix.
                          */
-                        if (code == HttpURLConnection.HTTP_MOVED_PERM
+                        if (code == 412
+                                || code == HttpURLConnection.HTTP_MOVED_PERM
                                 || code == HttpURLConnection.HTTP_MOVED_TEMP
                                 || code == HttpURLConnection.HTTP_SEE_OTHER
                                 || code == 307
