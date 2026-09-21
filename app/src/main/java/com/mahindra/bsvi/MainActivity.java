@@ -375,6 +375,24 @@ public class MainActivity extends Activity {
             return pair.trim();
         }
 
+        private String mergeCookie(String existing, String next) {
+            if (existing == null || existing.trim().isEmpty()) return next;
+            if (next == null || next.trim().isEmpty()) return existing;
+            String name = next.split("=", 2)[0].trim();
+            String[] parts = existing.split(";");
+            StringBuilder out = new StringBuilder();
+            boolean replaced = false;
+            for (String part : parts) {
+                String p = part.trim();
+                if (p.isEmpty()) continue;
+                if (out.length() > 0) out.append("; ");
+                if (p.startsWith(name + "=")) { out.append(next); replaced = true; }
+                else out.append(p);
+            }
+            if (!replaced) { if (out.length() > 0) out.append("; "); out.append(next); }
+            return out.toString();
+        }
+
         @JavascriptInterface
         public void startSpeech(String locale) {
 
