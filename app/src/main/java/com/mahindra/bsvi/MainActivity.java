@@ -76,37 +76,50 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
 
-                // Normalize Apps Script responses before the existing HTML parser sees them.
+                // Normalize Apps Script / Google wrapper responses before the HTML parser sees them.
+                // Accept direct JSON, the secure meta transport, <pre>/<body> JSON,
+                // and JSON embedded inside a Google-generated HTML wrapper.
                 view.evaluateJavascript(
                         "(function(){window.__mahindraNormalizeResponse=function(raw){"
-                                + "try{"
-                                + "var o=(typeof raw==='string')?JSON.parse(raw):raw;"
-                                + "var b=o&&o.body;"
-                                + "if(typeof b==='string'){"
-                                + "try{JSON.parse(b||'{}');return raw;}"
-                                + "catch(e){"
-                                + "var m=b.match(/<meta[^>]+name=[\\\"']mahindra-json[\\\"'][^>]+content=[\\\"']([^\\\"']+)[\\\"'][^>]*>/i);"
-                                + "if(m&&m[1]){"
-                                + "var s=m[1].replace(/-/g,'+').replace(/_/g,'/');"
+                                + "function parse(v){try{return JSON.parse(v);}catch(e){return null;}}"
+                                + "function b64(v){try{"
+                                + "var s=v.replace(/-/g,'+').replace(/_/g,'/');"
                                 + "while(s.length%4)s+='=';"
                                 + "var bin=atob(s),bytes=new Uint8Array(bin.length);"
                                 + "for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);"
-                                + "var decoded=new TextDecoder('utf-8').decode(bytes);"
-                                + "JSON.parse(decoded);"
-                                + "return JSON.stringify({code:o.code||200,body:decoded});"
+                                + "return new TextDecoder('utf-8').decode(bytes);"
+                                + "}catch(e){return null;}}"
+                                + "function decodeHtml(v){try{"
+                                + "var d=document.createElement('textarea');d.innerHTML=v;return d.value;"
+                                + "}catch(e){return v;}}"
+                                + "function extract(v){"
+                                + "var direct=parse((v||'').trim());if(direct)return direct;"
+                                + "var m=(v||'').match(/<meta[^>]*name=[\\\"']mahindra-json[\\\"'][^>]*content=[\\\"']([^\\\"']+)[\\\"'][^>]*>/i);"
+                                + "if(!m)m=(v||'').match(/<meta[^>]*content=[\\\"']([^\\\"']+)[\\\"'][^>]*name=[\\\"']mahindra-json[\\\"'][^>]*>/i);"
+                                + "if(m){var d=b64(m[1]);var j=parse(d||'');if(j)return j;}"
+                                + "var clean=decodeHtml(v||'');"
+                                + "var tag=(clean.match(/<(?:pre|body)[^>]*>([\\s\\S]*?)<\\/(?:pre|body)>/i)||[])[1];"
+                                + "var t=decodeHtml(tag||'').trim();"
+                                + "var j=parse(t);if(j)return j;"
+                                + "var a=t.indexOf('{'),z=t.lastIndexOf('}');"
+                                + "if(a>=0&&z>a){j=parse(t.slice(a,z+1));if(j)return j;}"
+                                + "a=clean.indexOf('{');z=clean.lastIndexOf('}');"
+                                + "if(a>=0&&z>a){j=parse(clean.slice(a,z+1));if(j)return j;}"
+                                + "return null;"
                                 + "}"
-                                + "var err={ok:false,code:(o&&o.code)||0,error:'Backend returned non-JSON response (HTTP '+((o&&o.code)||0)+').',details:b.slice(0,800)};"
+                                + "try{"
+                                + "var o=(typeof raw==='string')?JSON.parse(raw):raw;"
+                                + "var b=o&&o.body;"
+                                + "var j=extract(typeof b==='string'?b:'');"
+                                + "if(j)return JSON.stringify({code:o.code||200,body:JSON.stringify(j)});"
+                                + "var err={ok:false,code:(o&&o.code)||0,error:'Backend returned non-JSON response (HTTP '+((o&&o.code)||0)+').',details:String(b||'').slice(0,1200)};"
                                 + "return JSON.stringify({code:(o&&o.code)||0,body:JSON.stringify(err)});"
-                                + "}"
-                                + "}"
-                                + "return raw;"
                                 + "}catch(e){"
-                                + "var err={ok:false,code:0,error:'Backend response error: '+(e.message||e),details:String(raw).slice(0,800)};"
+                                + "var err={ok:false,code:0,error:'Backend response error: '+(e.message||e),details:String(raw).slice(0,1200)};"
                                 + "return JSON.stringify({code:0,body:JSON.stringify(err)});"
                                 + "}};})();",
                         null
                 );
-            }
 
             @Override
             public boolean shouldOverrideUrlLoading(
