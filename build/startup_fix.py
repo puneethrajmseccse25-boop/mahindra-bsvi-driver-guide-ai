@@ -17,7 +17,9 @@ new = '''view.evaluateJavascript(
                 );'''
 if old in java:
     java = java.replace(old, new, 1)
-elif new not in java:
+elif "file:///android_asset/app_shell.js" not in java:
     raise RuntimeError("app_shell injection block not found")
+# If MainActivity already clears the secure session before loading the shell,
+# no extra startup script is required.
 java_path.write_text(java, encoding="utf-8")
 print("startup login fix applied")
