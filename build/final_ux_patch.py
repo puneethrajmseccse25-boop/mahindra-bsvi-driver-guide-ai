@@ -105,7 +105,7 @@ if marker not in html:
 
 java = java_path.read_text(encoding="utf-8")
 jmarker = "FINAL-DIRECT-CAMERA-v2"
-if jmarker not in java:
+if jmarker not in java and "REQ_DIRECT_CAMERA" not in java:
     java = java.replace(
         "private static final int REQ_FILE = 3003;",
         "private static final int REQ_FILE = 3003;\n    private static final int REQ_DIRECT_CAMERA = 3004;"
