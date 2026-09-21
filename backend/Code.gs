@@ -51,6 +51,7 @@ function initializeBackend() {
     ss = SpreadsheetApp.create('MAHINDRA BSVI — Secure Operational Database');
     spreadsheetId = ss.getId();
     props.setProperty('RBAC_SPREADSHEET_ID', spreadsheetId);
+    props.setProperty('SPREADSHEET_ID', spreadsheetId);
   }
 
   ensureSheet_(ss, CFG.USERS_SHEET, [
@@ -109,22 +110,13 @@ function doPost(e) {
 }
 
 function json_(obj) {
-  // Use HtmlService for API responses so Google does not apply the
-  // ContentService googleusercontent.com redirect to native clients.
-  // The JSON is carried in a base64url meta value so the Android client
-  // can recover the exact JSON without exposing credentials in the URL.
-  const json = JSON.stringify(obj);
-  const encoded = Utilities.base64EncodeWebSafe(
-    Utilities.newBlob(json).getBytes()
-  );
-  return HtmlService
-    .createHtmlOutput(
-      '<!doctype html><html><head>' +
-      '<meta name="mahindra-json" content="' + encoded + '">' +
-      '</head><body>' +
-      '<div id="mahindra-json" style="display:none">' + encoded + '</div>' +
-      '</body></html>'
-    );
+  // Apps Script ContentService is the supported way to return raw JSON.
+  // Google may redirect the response to script.googleusercontent.com;
+  // the Android client explicitly follows that redirect and preserves
+  // the Apps Script session cookie / gsessionid.
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function ensureSheet_(ss, name, headers) {
