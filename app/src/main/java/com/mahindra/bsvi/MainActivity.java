@@ -73,6 +73,32 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
 
             @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+
+                // Replace the brittle response parser in the packaged HTML.
+                // Apps Script may return a JSON body, an object, or an HTML
+                // error page after its redirect/session flow.
+                view.evaluateJavascript(
+                        "(function(){window.appHttpResult=function(raw){"
+                                + "var result;"
+                                + "try{"
+                                + "var outer=(typeof raw==='string')?JSON.parse(raw):raw;"
+                                + "var body=outer&&outer.body;"
+                                + "if(typeof body==='string'){"
+                                + "try{result=JSON.parse(body||'{}');}"
+                                + "catch(e){result={ok:false,code:(outer&&outer.code)||0,error:'Backend returned non-JSON response (HTTP '+((outer&&outer.code)||0)+').',details:body.slice(0,800)};}"
+                                + "}else if(body&&typeof body==='object'){result=body;}"
+                                + "else if(outer&&typeof outer==='object'&&('ok' in outer)){result=outer;}"
+                                + "else{throw new Error('Empty backend response (HTTP '+((outer&&outer.code)||0)+')');}"
+                                + "}catch(e){result={ok:false,code:0,error:'Backend response error: '+(e.message||e),details:String(raw).slice(0,800)};}"
+                                + "if(window.__mahindraPending){var cb=window.__mahindraPending;window.__mahindraPending=null;cb(result);}"
+                                + "};})();",
+                        null
+                );
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(
                     WebView view,
                     WebResourceRequest request) {
