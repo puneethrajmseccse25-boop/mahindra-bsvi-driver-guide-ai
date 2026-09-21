@@ -19,6 +19,11 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -120,9 +125,9 @@ public class MainActivity extends Activity {
                         null
                 );
 
-                // Load the final professional dashboard/login/navigation shell.
+                // Every fresh Activity launch starts unauthenticated.
                 view.evaluateJavascript(
-                        "(function(){var s=document.createElement('script');s.src='file:///android_asset/app_shell.js';document.head.appendChild(s);})();",
+                        "(function(){try{localStorage.removeItem('mahindra_secure_token_v1');localStorage.removeItem('mahindra_secure_user_v1');localStorage.removeItem('mahindra_user_role_v2');}catch(e){};var s=document.createElement('script');s.src='file:///android_asset/app_shell.js';document.head.appendChild(s);})();",
                         null
                 );
             }
@@ -805,6 +810,44 @@ public class MainActivity extends Activity {
         speechRecognizer.startListening(i);
     }
 
+    private void analyzeDriverPhoto() {
+        if (cameraUri == null || web == null) {
+            sendPhotoOcrResult("");
+            return;
+        }
+
+        try {
+            InputImage image = InputImage.fromFilePath(this, cameraUri);
+            TextRecognizer recognizer =
+                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+            recognizer.process(image)
+                    .addOnSuccessListener(result -> {
+                        sendPhotoOcrResult(result.getText());
+                        recognizer.close();
+                    })
+                    .addOnFailureListener(error -> {
+                        sendPhotoOcrResult("");
+                        recognizer.close();
+                    });
+        } catch (Exception e) {
+            sendPhotoOcrResult("");
+        }
+    }
+
+    private void sendPhotoOcrResult(String text) {
+        if (web != null) {
+            web.post(() ->
+                    web.evaluateJavascript(
+                            "window.nativePhotoTextResult && window.nativePhotoTextResult("
+                                    + JSONObject.quote(text == null ? "" : text)
+                                    + ")",
+                            null
+                    )
+            );
+        }
+    }
+
     private void sendSpeechResult(String text) {
 
         if (web != null) {
@@ -911,10 +954,11 @@ public class MainActivity extends Activity {
 
         if (requestCode == REQ_DIRECT_CAMERA) {
 
-            sendCameraResult(
-                    resultCode == RESULT_OK
-                            && cameraUri != null
-            );
+            boolean ok = resultCode == RESULT_OK && cameraUri != null;
+            sendCameraResult(ok);
+            if (ok) {
+                analyzeDriverPhoto();
+            }
 
             return;
         }
