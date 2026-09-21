@@ -7,6 +7,13 @@ java_path = ROOT / "app/src/main/java/com/mahindra/bsvi/MainActivity.java"
 
 html = html_path.read_text(encoding="utf-8")
 
+# Expose the supplied Mahindra knowledge base to the native dashboard shell.
+# The KB itself remains embedded in the APK; this only makes the parsed array
+# available to the exact-photo solution matcher.
+kb_boot = "let KB=[]; try{KB=JSON.parse(rawEl.textContent||'[]')}catch(e){KB=[]}"
+kb_boot_new = "let KB=[]; try{KB=JSON.parse(rawEl.textContent||'[]')}catch(e){KB=[]}; window.mahindraKB=KB;"
+html = html.replace(kb_boot, kb_boot_new, 1)
+
 # Replace the fixed Mahindra category list with a live index generated from the
 # 700 supplied KB records embedded in the APK.
 start = html.find("  window.about=function(){")
