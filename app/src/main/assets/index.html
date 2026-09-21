@@ -848,21 +848,40 @@ renderHome();
   function relevantVideos(q){const s=String(q||'').toLowerCase();return VIDEO_LINKS.filter(v=>v.tags.some(t=>s.includes(t))).slice(0,4)}
   function showKBResult(query){
     const hits=searchKB(query);
-    const videos=relevantVideos(query);
-    let body='<div class="notice"><b>'+tr('Problem entered','समस्या दर्ज की गई','ಸಮಸ್ಯೆ ನಮೂದಿಸಲಾಗಿದೆ')+':</b><div style="margin-top:6px">'+esc(query)+'</div></div>';
-    if(!hits.length){
-      body+='<div class="notice">'+tr('No exact documented match was found. Try adding the warning lamp, P-code, symptom, vehicle model or component name.','दस्तावेज़ में सटीक मिलान नहीं मिला। वार्निंग लैंप, P-code, लक्षण, वाहन मॉडल या component का नाम जोड़ें।','ದಾಖಲೆಗಳಲ್ಲಿ ನಿಖರವಾದ ಹೊಂದಾಣಿಕೆ ಸಿಗಲಿಲ್ಲ. ವಾರ್ನಿಂಗ್ ಲ್ಯಾಂಪ್, P-code, ಲಕ್ಷಣ, ವಾಹನ ಮಾದರಿ ಅಥವಾ component ಹೆಸರು ಸೇರಿಸಿ.')+'</div>';
-    } else {
-      body+='<h3>'+tr('Mahindra source-based results','Mahindra स्रोत-आधारित परिणाम','Mahindra ಮೂಲಾಧಾರಿತ ಫಲಿತಾಂಶಗಳು')+'</h3>';
-      hits.slice(0,5).forEach((h,i)=>{
-        body+='<div class="notice"><b>'+(i+1)+'. '+esc(h.source)+(h.page?' — page/slide '+h.page:'')+'</b><div style="margin-top:8px;line-height:1.5">'+esc(h.text)+'</div></div>';
-      });
+    const first=hits[0];
+    const steps=langCode()==='kn'
+      ? ['🛑 ಸುರಕ್ಷಿತ ಸ್ಥಳದಲ್ಲಿ ನಿಲ್ಲಿಸಿ','⚙️ NEUTRAL','🅿️ HAND BRAKE','🔎 CHECK LAMP / WARNING','🎤 SPEAK THE PROBLEM CLEARLY','👷 CALL MECHANIC / AUTHORIZED SERVICE']
+      : langCode()==='hi'
+      ? ['🛑 सुरक्षित जगह पर रोकें','⚙️ NEUTRAL','🅿️ HAND BRAKE','🔎 CHECK LAMP / WARNING','🎤 समस्या साफ बोलें','👷 CALL MECHANIC / AUTHORIZED SERVICE']
+      : ['🛑 STOP SAFELY','⚙️ NEUTRAL','🅿️ HAND BRAKE','🔎 CHECK LAMP / WARNING','🎤 SPEAK THE PROBLEM CLEARLY','👷 CALL MECHANIC / AUTHORIZED SERVICE'];
+    let body='<div class="notice"><b>'+tr('PROBLEM RECEIVED','समस्या प्राप्त हुई','ಸಮಸ್ಯೆ ಸ್ವೀಕರಿಸಲಾಗಿದೆ')+'</b><div style="margin-top:7px;font-size:17px">'+esc(query)+'</div></div>';
+    body+='<div class="visual-list">'+steps.map((x,i)=>'<div class="visual-item"><div class="visual-img"><b style="font-size:24px">'+(i+1)+'</b></div><div class="visual-text"><div class="visual-title">'+esc(x)+'</div></div></div>').join('')+'</div>';
+    body+='<div class="notice" style="margin-top:12px"><b>'+tr('Documented information found','दस्तावेज़ में मिली जानकारी','ದಾಖಲೆಯಲ್ಲಿ ಸಿಕ್ಕ ಮಾಹಿತಿ')+'</b><br>'+
+      (first?esc(first.text).slice(0,420):tr('No exact documented match. Do not guess the repair.','सटीक दस्तावेज़ी मिलान नहीं मिला। repair का अनुमान न लगाएं।','ನಿಖರ ದಾಖಲೆ ಹೊಂದಾಣಿಕೆ ಸಿಗಲಿಲ್ಲ. repair ಅನ್ನು ಊಹಿಸಬೇಡಿ.'))+
+      '</div>';
+    if(hits.length){
+      body+='<details style="margin-top:12px"><summary style="font-weight:800;font-size:16px;padding:12px;background:#eef2f6;border-radius:10px">'+tr('📚 SOURCE DETAILS — tap to open','📚 SOURCE DETAILS — खोलने के लिए दबाएं','📚 SOURCE DETAILS — ತೆರೆಯಲು ಒತ್ತಿರಿ')+'</summary>';
+      hits.slice(0,8).forEach(h=>{body+='<div class="notice" style="margin-top:8px"><b>'+esc(h.source)+(h.page?' — page/slide '+esc(h.page):'')+'</b><div style="margin-top:7px;line-height:1.5">'+esc(h.text)+'</div></div>';});
+      body+='</details>';
     }
-    body+='<div class="mech-actions"><button class="primary" onclick="speakText('+JSON.stringify(hits.length?hits[0].text:'No exact match found.')+')">🔊 '+tr('Read result','परिणाम पढ़ें','ಫಲಿತಾಂಶ ಓದಿ')+'</button><button class="secondary" onclick="stopSpeech()">⏹ '+tr('Stop voice','आवाज़ रोकें','ಧ್ವನಿ ನಿಲ್ಲಿಸಿ')+'</button></div>';
-    if(videos.length){body+='<h3>🎥 '+tr('Relevant video','संबंधित वीडियो','ಸಂಬಂಧಿತ ವೀಡಿಯೊ')+'</h3>';videos.forEach(v=>body+='<p><a href="'+v.url+'" target="_blank" rel="noopener">▶ '+esc(v.title)+'</a></p>')}
-    body+='<p class="muted">'+tr('Technical information is shown from the uploaded Mahindra training/diagnostic sources. For repair actions that require diagnostic equipment or workshop procedures, follow the documented procedure and qualified service personnel.','तकनीकी जानकारी आपके अपलोड किए गए Mahindra प्रशिक्षण/डायग्नोस्टिक स्रोतों से दिखाई जाती है। जिन मरम्मत कार्यों के लिए diagnostic equipment या workshop procedure चाहिए, documented procedure और qualified service personnel का पालन करें।','ತಾಂತ್ರಿಕ ಮಾಹಿತಿಯನ್ನು ನೀವು ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ Mahindra ತರಬೇತಿ/ಡಯಾಗ್ನೋಸ್ಟಿಕ್ ಮೂಲಗಳಿಂದ ತೋರಿಸಲಾಗುತ್ತದೆ. Diagnostic equipment ಅಥವಾ workshop procedure ಅಗತ್ಯವಿರುವ ದುರಸ್ತಿ ಕೆಲಸಗಳಿಗೆ documented procedure ಮತ್ತು qualified service personnel ಅನುಸರಿಸಿ.')+'</p>';
+    body+='<div class="mech-actions" style="display:grid;gap:8px;margin-top:12px"><button class="primary" onclick="readSteps()">🔊 READ STEPS</button><div id="readStatus" class="status-note">The steps are always visible on screen.</div></div>';
+    const vids=relevantVideos(query);
+    if(vids.length){
+      body+='<details style="margin-top:12px"><summary style="font-weight:800;font-size:16px;padding:12px;background:#eef2f6;border-radius:10px">🎥 TRAINING VIDEO</summary>';
+      vids.forEach((v,i)=>body+='<button class="primary" onclick="playAIVideo(\''+esc(String(i))+'\',0)">▶ '+esc(v.title)+'</button>');
+      body+='</details>';
+    }
     show(tr('Vehicle Problem Solution','वाहन समस्या समाधान','ವಾಹನ ಸಮಸ್ಯೆ ಪರಿಹಾರ'),body);
   }
+  window.readSteps=function(){
+    const status=document.getElementById('readStatus');
+    const text=langCode()==='kn'?'ಸುರಕ್ಷಿತ ಸ್ಥಳದಲ್ಲಿ ನಿಲ್ಲಿಸಿ. Neutral. Hand brake. Check lamp. ಸಮಸ್ಯೆಯನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿ. Mechanic ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.':langCode()==='hi'?'सुरक्षित जगह पर रोकें। Neutral। Hand brake। Check lamp। समस्या साफ बोलें। Mechanic से संपर्क करें.':'Stop safely. Neutral. Hand brake. Check lamp. Speak the problem clearly. Call mechanic.';
+    if(status)status.textContent='🔊 '+text;
+    try{
+      if(window.AndroidBridge&&AndroidBridge.startSpeech){window._speechTarget='readOnly';AndroidBridge.startSpeech(langCode()==='kn'?'kn-IN':langCode()==='hi'?'hi-IN':'en-IN');}
+      else if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=langCode()==='kn'?'kn-IN':langCode()==='hi'?'hi-IN':'en-IN';u.onend=()=>{if(status)status.textContent='✅ '+text};u.onerror=()=>{if(status)status.textContent='📖 '+text};speechSynthesis.speak(u);}
+    }catch(e){if(status)status.textContent='📖 '+text;}
+  };
   function openProblemUI(){
     const old=typeof problem==='function'?problem:null;
     const title=tr('Vehicle Problem','वाहन समस्या','ವಾಹನ ಸಮಸ್ಯೆ');
@@ -1061,132 +1080,10 @@ renderHome();
 </script>
 
 <script>
+/* Legacy role picker disabled: authenticated backend role is authoritative. */
 (function(){
-  const ROLE_KEY='mahindra_user_role_v2';
-
-  function roleOverlay(){
-    const old=document.getElementById('roleOverlay');
-    if(old) old.remove();
-    const ov=document.createElement('div');
-    ov.id='roleOverlay';
-    ov.style.cssText='position:fixed;inset:0;background:#f3f5f7;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.innerHTML=`<div style="width:100%;max-width:520px;background:#fff;border-radius:18px;padding:24px;box-shadow:0 4px 18px #0002;text-align:center">
-      <div style="font-size:28px;font-weight:800;margin-bottom:8px">🚛 MAHINDRA BSVI DRIVER GUIDE</div>
-      <div style="font-size:18px;margin-bottom:22px">Please select your role</div>
-      <button id="roleMechanic" style="width:100%;min-height:75px;margin:8px 0;border:0;border-radius:14px;background:#b71c1c;color:#fff;font-size:24px;font-weight:800">🔧 MECHANIC</button>
-      <button id="roleDriver" style="width:100%;min-height:75px;margin:8px 0;border:0;border-radius:14px;background:#17202a;color:#fff;font-size:24px;font-weight:800">🚚 DRIVER</button>
-    </div>`;
-    document.body.appendChild(ov);
-    document.getElementById('roleMechanic').onclick=()=>chooseRole('mechanic');
-    document.getElementById('roleDriver').onclick=()=>chooseRole('driver');
-  }
-
-  function addRoleButton(){
-    let b=document.getElementById('roleSwitch');
-    if(b) return;
-    b=document.createElement('button');
-    b.id='roleSwitch';
-    b.textContent='🔄 CHANGE ROLE';
-    b.style.cssText='position:fixed;right:10px;top:10px;z-index:6;background:#fff;color:#17202a;border:0;border-radius:8px;padding:7px 9px;font-weight:700;font-size:11px';
-    b.onclick=()=>{localStorage.removeItem(ROLE_KEY);location.reload();};
-    document.body.appendChild(b);
-  }
-
-  function removeMechanicCard(){
-    document.querySelectorAll('[onclick]').forEach(el=>{
-      const x=(el.getAttribute('onclick')||'');
-      if(x.includes('mechanicUpdates')) el.remove();
-    });
-  }
-
-  function chooseRole(role){
-    localStorage.setItem(ROLE_KEY,role);
-    const ov=document.getElementById('roleOverlay'); if(ov)ov.remove();
-    addRoleButton();
-    if(role==='mechanic'){
-      // Keep mechanic mode intentionally simple.
-      try{mechanicUpdates();}catch(e){}
-    }else{
-      try{renderHome();}catch(e){}
-      removeMechanicCard();
-    }
-  }
-
-  function ensureRole(){
-    const role=localStorage.getItem(ROLE_KEY);
-    if(!role){ roleOverlay(); return; }
-    addRoleButton();
-    if(role==='mechanic'){
-      setTimeout(()=>{try{mechanicUpdates();}catch(e){}},50);
-    }else{
-      setTimeout(()=>removeMechanicCard(),50);
-    }
-  }
-
-  // Make Mahindra Data reliably open even if another script replaced about().
-  window.openMahindraData=function(){
-    const cats=['Engine & D72','EMS / ECU','Sensors & Actuators','P-Codes & Diagnosis','DPF / Regeneration','AdBlue / DNOx / NOx','Warning Lamps / DIS Cluster','Wiring / Connectors / CAN','Fuses & Relays','OBD-II / Diagnostic Tool','Workshop / Service Standards','Driver Training','43-Point Action & Video Pack'];
-    const esc2=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    const body='<div class="notice"><b>Mahindra BSVI Knowledge Base</b><br>700 searchable source sections loaded from the supplied Mahindra material.</div>'+
-      '<div class="mech-actions">'+cats.map(c=>'<button class="secondary" onclick="searchKnowledgeCategory('+JSON.stringify(c)+')">'+esc2(c)+'</button>').join('')+'</div>'+
-      '<div class="notice"><b>📚 Sources loaded</b><br>• D72 BS6 Diagnostic Manual<br>• 7.2L CRDe P-Codes & Wiring<br>• D72 280HP CR BS6 Workshop Manual<br>• BS6 Training PPT<br>• BSVI Driver Training HCV<br>• Final Driver Training<br>• 43-Point AI Action Instruction Pack</div>';
-    show('📚 Mahindra Data',body);
-  };
-
-  // If the original home has a Mahindra Data card, make its click deterministic.
-  function patchMahindraCard(){
-    document.querySelectorAll('.card').forEach(card=>{
-      const txt=(card.innerText||'').toLowerCase();
-      if(txt.includes('mahindra data')){
-        card.onclick=window.openMahindraData;
-      }
-    });
-  }
-
-  // Add a simple refresh action in mechanic mode; it does not expose any technical URL.
-  window.refreshSharedDataSimple=function(){
-    const st=document.getElementById('mechStatus');
-    if(st) st.textContent='☁️ Getting latest records...';
-    if(typeof window.syncMechanicCloud==='function') window.syncMechanicCloud(false);
-    else if(st) st.textContent='⚠️ Shared database is not connected.';
-  };
-
-  function patchMechanicScreen(){
-    const st=document.getElementById('mechStatus');
-    if(!st) return;
-    // Keep only a simple user-facing message.
-    const p=st.parentElement;
-    if(p && !document.getElementById('simpleRefreshBtn')){
-      const btn=document.createElement('button');
-      btn.id='simpleRefreshBtn';
-      btn.className='secondary';
-      btn.style.cssText='width:100%;font-size:16px;padding:13px;margin-top:4px';
-      btn.textContent='🔄 REFRESH SHARED DATA';
-      btn.onclick=window.refreshSharedDataSimple;
-      p.insertBefore(btn,st);
-    }
-  }
-
-  const oldShow=window.show;
-  if(typeof oldShow==='function'){
-    window.show=function(title,body){
-      oldShow(title,body);
-      setTimeout(()=>{patchMahindraCard();patchMechanicScreen();},30);
-    };
-  }
-
-  document.addEventListener('DOMContentLoaded',()=>{
-    setTimeout(()=>{
-      patchMahindraCard();
-      ensureRole();
-    },100);
-  });
-  window.addEventListener('load',()=>{
-    setTimeout(()=>{
-      patchMahindraCard();
-      ensureRole();
-    },150);
-  });
+  document.getElementById('roleOverlay')?.remove();
+  document.getElementById('roleSwitch')?.remove();
 })();
 </script>
 
@@ -1257,13 +1154,11 @@ renderHome();
     x.querySelector('#mDriver').onclick=()=>chooseMode('driver');x.querySelector('#mMech').onclick=()=>chooseMode('mechanic');x.querySelector('#mLogout').onclick=logout;
   }
   function chooseMode(mode){localStorage.setItem(MODE_KEY,mode);document.getElementById('modeOverlay')?.remove();location.reload();}
-  function routeAfterLogin(){const u=getUser();if(u.role==='ADMIN'){localStorage.setItem(MODE_KEY,'admin');location.reload();}else showMode();}
+  function routeAfterLogin(){const u=getUser();if(!u)return showLogin();const role=String(u.role||'').toUpperCase();if(role==='ADMIN')localStorage.setItem(MODE_KEY,'admin');else if(role==='MECHANIC')localStorage.setItem(MODE_KEY,'mechanic');else localStorage.setItem(MODE_KEY,'driver');location.reload();}
   function logout(){api('logout',{},()=>{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY);localStorage.removeItem(MODE_KEY);location.reload();});}
   function addSecureBar(){
-    if(document.getElementById('secureUserBar'))return;const u=getUser();if(!u)return;
-    const bar=document.createElement('div');bar.id='secureUserBar';bar.className='secure-user-bar';
-    bar.innerHTML='<button onclick="secureHome()">🏠 HOME</button><button onclick="secureSwitchMode()">🔄 MODE</button><button class="red" onclick="secureLogout()">LOG OUT</button>';
-    document.body.appendChild(bar);
+    const old=document.getElementById('secureUserBar');if(old)old.remove();
+    const u=getUser();if(!u)return;
   }
   window.secureHome=function(){const mode=localStorage.getItem(MODE_KEY);if(mode==='driver'){document.getElementById('screen')?.classList.add('hide');if(typeof renderHome==='function')renderHome();}else if(mode==='mechanic'){secureMechanic();}else secureAdmin();};
   window.secureSwitchMode=function(){if(getUser()?.role==='ADMIN'){secureAdmin();return;}showMode();};
@@ -1295,7 +1190,7 @@ renderHome();
       <div id="adminAdd" class="admin-card" style="margin-top:10px;display:none"></div>`;
     show('🛡️ ADMIN DASHBOARD',body);secureLoadUsers();secureLoadAllWork();
   }
-  window.secureShowAddUser=function(){const x=document.getElementById('adminAdd');if(!x)return;x.style.display='block';x.innerHTML='<h3>➕ Create User</h3><label>Name</label><input id="newName" style="width:100%;box-sizing:border-box" placeholder="Full name"><label>10-digit Mobile</label><input id="newMobile" inputmode="numeric" maxlength="10" style="width:100%;box-sizing:border-box" placeholder="Mobile number"><label>Role</label><select id="newRole" style="width:100%"><option value="USER">USER</option><option value="ADMIN">ADMIN</option></select><button class="primary" onclick="secureAddUser()">CREATE ACCOUNT</button><div id="addUserStatus" class="status-note"></div>';};
+  window.secureShowAddUser=function(){const x=document.getElementById('adminAdd');if(!x)return;x.style.display='block';x.innerHTML='<h3>➕ Create User</h3><label>Name</label><input id="newName" style="width:100%;box-sizing:border-box" placeholder="Full name"><label>10-digit Mobile</label><input id="newMobile" inputmode="numeric" maxlength="10" style="width:100%;box-sizing:border-box" placeholder="Mobile number"><label>Role</label><select id="newRole" style="width:100%"><option value="DRIVER">DRIVER</option><option value="MECHANIC">MECHANIC</option><option value="ADMIN">ADMIN</option></select><button class="primary" onclick="secureAddUser()">CREATE ACCOUNT</button><div id="addUserStatus" class="status-note"></div>';};
   window.secureAddUser=function(){const st=document.getElementById('addUserStatus');api('add_user',{name:document.getElementById('newName')?.value.trim(),mobile:document.getElementById('newMobile')?.value.replace(/\D/g,''),role:document.getElementById('newRole')?.value},r=>{if(st)st.textContent=r.ok?'✅ User created. Initial password = last 4 digits of mobile number.':'❌ '+(r.error||'Could not create user.');if(r.ok)secureLoadUsers();});};
   window.secureLoadUsers=function(){const box=document.getElementById('adminUsers');if(!box)return;box.innerHTML='⏳ Loading...';api('list_users',{},r=>{if(!r.ok){box.innerHTML='<div class="notice">❌ '+esc(r.error)+'</div>';return;}box.innerHTML='<table class="admin-table"><thead><tr><th>Name</th><th>Mobile</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+r.users.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.mobile)+'</td><td>'+esc(x.role)+'</td><td>'+esc(x.status)+'</td><td><button onclick="secureToggleUser(\''+esc(x.id)+'\',\''+(x.status==='ACTIVE'?'DISABLED':'ACTIVE')+'\')">'+(x.status==='ACTIVE'?'DISABLE':'ENABLE')+'</button> <button onclick="secureToggleRole(\''+esc(x.id)+'\',\''+(x.role==='ADMIN'?'USER':'ADMIN')+'\')">ROLE</button></td></tr>').join('')+'</tbody></table>';});};
   window.secureToggleUser=function(id,status){api('set_user_status',{userId:id,status:status},r=>{if(!r.ok)alert(r.error||'Update failed');secureLoadUsers();});};
@@ -1315,13 +1210,51 @@ renderHome();
   function boot(){
     const token=getToken(),u=getUser();
     if(!token||!u){document.getElementById('secureAuth')?.remove();showLogin();return;}
-    addSecureBar();
-    const mode=localStorage.getItem(MODE_KEY);
-    if(u.role==='ADMIN'){setTimeout(secureAdmin,60);return;}
-    if(mode!=='driver'&&mode!=='mechanic'){setTimeout(showMode,60);return;}
-    if(mode==='mechanic')setTimeout(secureMechanic,80);
+    const role=String(u.role||'').toUpperCase();
+    if(role==='ADMIN'){localStorage.setItem(MODE_KEY,'admin');setTimeout(secureAdmin,60);return;}
+    if(role==='MECHANIC'){localStorage.setItem(MODE_KEY,'mechanic');setTimeout(secureMechanic,80);return;}
+    if(role==='DRIVER'||role==='USER'){localStorage.setItem(MODE_KEY,'driver');setTimeout(()=>{document.getElementById('secureAuth')?.remove();if(typeof renderHome==='function')renderHome();},80);return;}
+    showLogin('This account has no valid application role.');
   }
   window.addEventListener('load',()=>setTimeout(boot,180));
 })();
 </script>
-</body></html>
+<script>
+/* FINAL DRIVER-FIRST UX PATCH */
+(function(){
+  let stack=[]; let suppress=false;
+  const baseShow=window.show;
+  window.show=function(title,body){
+    if(!suppress){
+      const screen=document.getElementById('screen');
+      if(screen&&!screen.classList.contains('hide')&&screen.innerHTML.trim()){stack.push({title:screen.dataset.navTitle||'',html:screen.innerHTML});if(stack.length>12)stack.shift();}
+    }
+    baseShow(title,body);
+    const screen=document.getElementById('screen');if(!screen)return;
+    screen.dataset.navTitle=title;
+    screen.querySelectorAll('button').forEach(b=>{const tx=(b.textContent||'').trim();if(/^←\s*(HOME|ಹೋಮ್|होम)$/i.test(tx))b.remove();});
+    const old=screen.querySelector('.page-nav');if(old)old.remove();
+    const nav=document.createElement('div');nav.className='page-nav';nav.style.cssText='display:flex;justify-content:space-between;gap:8px;margin:-4px 0 12px';
+    nav.innerHTML='<button onclick="uxHome()" style="border:0;background:#17202a;color:#fff;border-radius:10px;padding:11px 16px;font-weight:900">⌂ HOME</button><button onclick="uxBack()" style="border:0;background:#b71c1c;color:#fff;border-radius:10px;padding:11px 16px;font-weight:900">‹ BACK</button>';
+    screen.insertBefore(nav,screen.firstChild);window.scrollTo({top:0,left:0,behavior:'auto'});
+  };
+  window.uxBack=function(){
+    const item=stack.pop();if(!item){uxHome();return;}
+    suppress=true;const screen=document.getElementById('screen');
+    document.getElementById('home')?.classList.add('hide');document.getElementById('topIntro')?.classList.add('hide');document.getElementById('languagePanel')?.classList.add('hide');
+    screen.classList.remove('hide');screen.innerHTML=item.html;screen.dataset.navTitle=item.title;suppress=false;
+    const nav=document.createElement('div');nav.className='page-nav';nav.style.cssText='display:flex;justify-content:space-between;gap:8px;margin:-4px 0 12px';nav.innerHTML='<button onclick="uxHome()" style="border:0;background:#17202a;color:#fff;border-radius:10px;padding:11px 16px;font-weight:900">⌂ HOME</button><button onclick="uxBack()" style="border:0;background:#b71c1c;color:#fff;border-radius:10px;padding:11px 16px;font-weight:900">‹ BACK</button>';screen.insertBefore(nav,screen.firstChild);window.scrollTo({top:0,left:0,behavior:'auto'});
+  };
+  window.uxHome=function(){
+    stack=[];suppress=true;
+    const u=(()=>{try{return JSON.parse(localStorage.getItem('mahindra_secure_user_v1')||'null')}catch(e){return null}})();const role=String(u?.role||'').toUpperCase();
+    if(role==='ADMIN'&&typeof window.secureAdmin==='function')window.secureAdmin();
+    else if(role==='MECHANIC'&&typeof window.secureMechanic==='function')window.secureMechanic();
+    else{document.getElementById('screen')?.classList.add('hide');document.getElementById('home')?.classList.remove('hide');document.getElementById('topIntro')?.classList.remove('hide');document.getElementById('languagePanel')?.classList.remove('hide');if(typeof renderHome==='function')renderHome();document.querySelectorAll('.page-nav').forEach(x=>x.remove());window.scrollTo({top:0,left:0,behavior:'auto'});}
+    suppress=false;
+  };
+  const oldRenderHome=window.renderHome;
+  window.renderHome=function(){oldRenderHome();const home=document.getElementById('home');if(!home)return;const u=(()=>{try{return JSON.parse(localStorage.getItem('mahindra_secure_user_v1')||'null')}catch(e){return null}})();if(u){const b=document.createElement('div');b.className='secure-home-role';b.style.cssText='margin-bottom:10px;padding:11px 13px;border-radius:12px;background:#17202a;color:#fff;font-weight:900;text-align:center';b.textContent='🔐 '+String(u.role||'USER').toUpperCase()+' • '+(u.name||'');home.insertBefore(b,home.firstChild);}};
+  window.addEventListener('load',()=>setTimeout(()=>{document.getElementById('roleOverlay')?.remove();document.getElementById('roleSwitch')?.remove();document.querySelectorAll('#secureUserBar').forEach(x=>x.remove());},250));
+})();
+</script></body></html>
