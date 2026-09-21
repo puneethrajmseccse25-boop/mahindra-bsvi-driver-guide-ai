@@ -149,15 +149,15 @@ if jmarker not in java:
     if needle not in java:
         raise RuntimeError("camera method not found")
     java = java.replace(needle, direct + needle, 1)
-    bridge = """        @JavascriptInterface public void openCamera() {"""
+    bridge_pattern = r"(?m)^\s*@JavascriptInterface\s+public void openCamera\(\) \{"
     method = """        @JavascriptInterface public void captureDriverPhoto() {
             runOnUiThread(() -> openDirectCamera());
         }
 
 """
-    if bridge not in java:
+    if not re.search(bridge_pattern, java):
         raise RuntimeError("bridge method not found")
-    java = java.replace(bridge, method + bridge, 1)
+    java = re.sub(bridge_pattern, method + "        @JavascriptInterface public void openCamera() {", java, count=1)
     perm = """        } else if (requestCode == REQ_CAMERA) {"""
     perm_block = """        } else if (requestCode == REQ_DIRECT_CAMERA) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
