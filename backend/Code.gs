@@ -407,12 +407,12 @@ function addUser_(req, sessionUser) {
 
   const name = String(req.name || '').trim();
   const mobile = normalizeMobile_(req.mobile);
-  const role = String(req.role || 'USER').toUpperCase();
+  const role = String(req.role || 'DRIVER').toUpperCase();
 
   if (!name || !validMobile_(mobile)) {
     return { ok:false, code:400, error:'Enter a name and a valid 10-digit mobile number.' };
   }
-  if (role !== 'USER' && role !== 'ADMIN') {
+  if (role !== 'DRIVER' && role !== 'MECHANIC' && role !== 'USER' && role !== 'ADMIN') {
     return { ok:false, code:400, error:'Invalid role.' };
   }
   if (findUserByMobile_(mobile)) {
