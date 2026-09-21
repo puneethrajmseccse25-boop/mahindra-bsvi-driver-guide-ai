@@ -57,7 +57,16 @@ radial-gradient(circle at 50% 25%,#394650 0,#171d22 42%,#050708 100%)}
 /* Mechanic daily voice update */
 .mech-form{display:grid;gap:10px;margin-top:10px}.mech-form input,.mech-form textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit}.mech-actions{display:flex;gap:10px;flex-wrap:wrap}.mech-table{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px}.mech-table th,.mech-table td{border:1px solid #d7dde5;padding:9px;text-align:left;vertical-align:top}.mech-table th{background:#eef2f6}.status-note{margin-top:10px;padding:10px;border-radius:8px;background:#eef7ee}.danger{background:#991b1b;color:#fff;border:none;padding:12px 16px;border-radius:8px;font-weight:700;cursor:pointer}
 </style>
-</head>
+<style>
+.page-nav{display:flex;justify-content:space-between;gap:10px;margin:-4px 0 14px;position:sticky;top:0;z-index:20;padding:4px 0;background:#fff}
+.page-nav button{border:0;border-radius:11px;padding:13px 18px;font-weight:900;font-size:15px}
+.page-nav .nav-home{background:#17202a;color:#fff}.page-nav .nav-back{background:#b71c1c;color:#fff}
+.simple-step{min-height:76px!important;grid-template-columns:58px 1fr!important}
+.simple-step .visual-img{width:54px!important;height:54px!important}
+.source-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.source-cat{margin:0!important;min-height:58px}
+@media(max-width:520px){.source-grid{grid-template-columns:1fr}.page-nav button{padding:12px 16px}}
+</style></head>
 <body>
 <header><div class="title">🚛 MAHINDRA BSVI DRIVER GUIDE AI</div><div class="sub">Simple driver assistance • Photo • Voice • Kannada • Hindi</div></header>
 <div class="wrap">
@@ -919,7 +928,10 @@ renderHome();
   window.nativeSpeechError=function(msg){const a=document.getElementById('driverPhotoStatus');const b=document.getElementById('mechStatus');const el=a||b;if(el)el.textContent='❌ '+(msg||'Voice recognition failed.')};
   window.about=function(){
     const cats=['Engine & D72','EMS / ECU','Sensors & Actuators','P-Codes & Diagnosis','DPF / Regeneration','AdBlue / DNOx / NOx','Warning Lamps / DIS Cluster','Wiring / Connectors / CAN','Fuses & Relays','OBD-II / Diagnostic Tool','Workshop / Service Standards','Driver Training','43-Point Action & Video Pack'];
-    let body='<div class="notice"><b>'+tr('Mahindra BSVI Knowledge Base','Mahindra BSVI Knowledge Base','Mahindra BSVI Knowledge Base')+'</b><br>'+KB.length+' searchable source sections loaded from the supplied Mahindra material.</div><div class="mech-actions">'+cats.map(c=>'<button class="secondary" onclick="searchKnowledgeCategory('+JSON.stringify(c)+')">'+esc(c)+'</button>').join('')+'</div><div class="notice"><b>📚 Sources loaded</b><br>• D72 BS6 Diagnostic Manual<br>• 7.2L CRDe Reactions, P-Codes & Wiring<br>• D72 280HP CR BS6 Workshop Manual<br>• BS6 Training PPT<br>• BSVI Driver Training HCV<br>• Final Driver Training<br>• 43-Point AI Action Instruction Pack</div><p><a href="https://youtube.com/@mahindratrucksbuses" target="_blank" rel="noopener">▶ Mahindra Trucks & Buses YouTube Channel</a></p>';
+    let body='<div class="notice"><b>'+tr('📚 MAHINDRA BSVI SOURCE LIBRARY','📚 MAHINDRA BSVI SOURCE LIBRARY','📚 MAHINDRA BSVI SOURCE LIBRARY')+'</b><br>'+KB.length+' source sections are stored inside this APK.</div>';
+    body+='<div class="notice"><b>'+tr('Tap a category. Then tap a source to open the supplied text.','किसी category पर दबाएं। फिर source दबाकर supplied text खोलें।','Category ಒತ್ತಿ. ನಂತರ source ಒತ್ತಿ supplied text ತೆರೆಯಿರಿ.')+'</b></div>';
+    body+='<div class="source-grid">'+cats.map(c=>'<button class="secondary source-cat" onclick="searchKnowledgeCategory('+JSON.stringify(c)+')">📖 '+esc(c)+'</button>').join('')+'</div>';
+    body+='<div class="notice" style="margin-top:12px"><b>Sources</b><br>• D72 BS6 Diagnostic Manual<br>• 7.2L CRDe Reactions, P-Codes & Wiring<br>• D72 280HP CR BS6 Workshop Manual<br>• BS6 Training PPT<br>• BSVI Driver Training HCV<br>• Final Driver Training<br>• 43-Point AI Action Instruction Pack</div>';
     show('Mahindra Data',body);
   };
   window.searchKnowledgeCategory=function(q){showKBResult(q)};
@@ -1145,22 +1157,8 @@ renderHome();
     };
     if(message){const e=x.querySelector('#loginErr');e.style.display='block';e.textContent=message;}
   }
-  function showMode(){
-    const u=getUser(); if(!u)return showLogin();
-    const x=overlay('modeOverlay',`<div class="mode-card"><div style="font-size:40px">🚛</div><h2>Welcome, ${esc(u.name)}</h2><p style="color:#667">Select your working section</p>
-      <button class="mode-btn mode-driver" id="mDriver">🚚 DRIVER</button><button class="mode-btn mode-mechanic" id="mMech">🔧 MECHANIC</button>
-      <button id="mLogout" style="border:0;background:none;color:#b71c1c;font-weight:800;margin-top:10px">LOG OUT</button></div>`);
-    x.querySelector('#mDriver').onclick=()=>chooseMode('driver');x.querySelector('#mMech').onclick=()=>chooseMode('mechanic');x.querySelector('#mLogout').onclick=logout;
-  }
-  function chooseMode(mode){localStorage.setItem(MODE_KEY,mode);document.getElementById('modeOverlay')?.remove();location.reload();}
-  function routeAfterLogin(){const u=getUser();if(!u)return showLogin();const role=String(u.role||'').toUpperCase();if(role==='ADMIN')localStorage.setItem(MODE_KEY,'admin');else if(role==='MECHANIC')localStorage.setItem(MODE_KEY,'mechanic');else localStorage.setItem(MODE_KEY,'driver');location.reload();}
-  function logout(){api('logout',{},()=>{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY);localStorage.removeItem(MODE_KEY);location.reload();});}
-  function addSecureBar(){
-    const old=document.getElementById('secureUserBar');if(old)old.remove();
-    const u=getUser();if(!u)return;
-  }
   window.secureHome=function(){const mode=localStorage.getItem(MODE_KEY);if(mode==='driver'){document.getElementById('screen')?.classList.add('hide');if(typeof renderHome==='function')renderHome();}else if(mode==='mechanic'){secureMechanic();}else secureAdmin();};
-  window.secureSwitchMode=function(){if(getUser()?.role==='ADMIN'){secureAdmin();return;}showMode();};
+  window.secureSwitchMode=function(){const u=getUser();const role=String(u?.role||'').toUpperCase();if(role==='ADMIN')secureAdmin();else if(role==='MECHANIC')secureMechanic();else {document.getElementById('modeOverlay')?.remove();uxHome();}};
   window.secureLogout=logout;
 
   function secureMechanic(){
@@ -1255,5 +1253,144 @@ renderHome();
   const oldRenderHome=window.renderHome;
   window.renderHome=function(){oldRenderHome();const home=document.getElementById('home');if(!home)return;const u=(()=>{try{return JSON.parse(localStorage.getItem('mahindra_secure_user_v1')||'null')}catch(e){return null}})();if(u){const role=String(u.role||'USER').toUpperCase();const b=document.createElement('div');b.className='secure-home-role';b.style.cssText='margin-bottom:10px;padding:11px 13px;border-radius:12px;background:#17202a;color:#fff;font-weight:900;text-align:center';b.textContent='🔐 '+role+' • '+(u.name||'');home.insertBefore(b,home.firstChild);if(role==='DRIVER'||role==='USER'){home.querySelectorAll('.card').forEach(c=>{if((c.innerText||'').toLowerCase().includes('mechanic daily'))c.remove();});}}};
   window.addEventListener('load',()=>setTimeout(()=>{document.getElementById('roleOverlay')?.remove();document.getElementById('roleSwitch')?.remove();document.querySelectorAll('#secureUserBar').forEach(x=>x.remove());},250));
+})();
+</script><script>
+/* FINAL REQUIREMENTS UX — direct RBAC, driver-first navigation, simple instructions, source browser */
+(function(){
+  const esc2=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const roleOf=()=>{try{return String(JSON.parse(localStorage.getItem('mahindra_secure_user_v1')||'null')?.role||'').toUpperCase()}catch(e){return ''}};
+  const userOf=()=>{try{return JSON.parse(localStorage.getItem('mahindra_secure_user_v1')||'null')}catch(e){return null}};
+  let navStack=[]; let restoring=false;
+  const originalShow=window.show;
+
+  function addNav(screen,title){
+    screen.querySelectorAll('button').forEach(b=>{if(/^\s*(←|⌂)?\s*(HOME|ಹೋಮ್|होम)\s*$/i.test((b.textContent||'').trim()))b.remove();});
+    screen.querySelectorAll('.page-nav').forEach(x=>x.remove());
+    const nav=document.createElement('div');nav.className='page-nav';
+    nav.innerHTML='<button class="nav-home" onclick="finalHome()">⌂ HOME</button><button class="nav-back" onclick="finalBack()">‹ BACK</button>';
+    screen.insertBefore(nav,screen.firstChild);
+    screen.dataset.navTitle=title||'';
+  }
+
+  window.show=function(title,body,buttons=''){
+    const screen=document.getElementById('screen');
+    if(screen && !restoring && !screen.classList.contains('hide') && screen.innerHTML.trim()){
+      navStack.push({title:screen.dataset.navTitle||'',html:screen.innerHTML});
+      if(navStack.length>15)navStack.shift();
+    }
+    originalShow(title,body,buttons);
+    const s=document.getElementById('screen'); if(s)addNav(s,title);
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+  };
+
+  window.finalBack=function(){
+    const s=document.getElementById('screen');
+    if(navStack.length){
+      const item=navStack.pop(); restoring=true;
+      document.getElementById('home')?.classList.add('hide');
+      document.getElementById('topIntro')?.classList.add('hide');
+      document.getElementById('languagePanel')?.classList.add('hide');
+      s.classList.remove('hide'); s.innerHTML=item.html; addNav(s,item.title); restoring=false;
+      window.scrollTo({top:0,left:0,behavior:'auto'});
+    } else finalHome();
+  };
+
+  window.finalHome=function(){
+    navStack=[];
+    const role=roleOf();
+    document.getElementById('screen')?.classList.add('hide');
+    document.getElementById('topIntro')?.classList.remove('hide');
+    document.getElementById('languagePanel')?.classList.remove('hide');
+    if(role==='ADMIN' && window.secureAdmin){window.secureAdmin();return;}
+    if(role==='MECHANIC' && window.secureMechanic){window.secureMechanic();return;}
+    document.getElementById('home')?.classList.remove('hide');
+    if(typeof window.renderHome==='function')window.renderHome();
+    setTimeout(()=>{
+      document.querySelectorAll('.page-nav').forEach(x=>x.remove());
+      const home=document.getElementById('home');
+      if(!home)return;
+      const role=roleOf();
+      home.querySelectorAll('.card').forEach(c=>{
+        const txt=(c.innerText||'').toLowerCase();
+        if(role!=='MECHANIC' && txt.includes('mechanic daily'))c.remove();
+      });
+      const old=home.querySelector('.secure-home-role');if(old)old.remove();
+      const u=userOf();
+      if(u){
+        const b=document.createElement('div');b.className='secure-home-role';
+        b.textContent='🔐 '+role+' • '+(u.name||'');
+        b.style.cssText='margin-bottom:10px;padding:13px;border-radius:12px;background:#17202a;color:#fff;text-align:center;font-weight:900';
+        home.insertBefore(b,home.firstChild);
+      }
+    },0);
+  };
+
+  // Always direct-route by backend role. No DRIVER/MECHANIC selection overlay.
+  window.routeAfterLogin=function(){
+    const role=roleOf();
+    document.getElementById('modeOverlay')?.remove();
+    if(role==='ADMIN'){localStorage.setItem('mahindra_user_role_v2','admin');if(window.secureAdmin)window.secureAdmin();return;}
+    if(role==='MECHANIC'){localStorage.setItem('mahindra_user_role_v2','mechanic');if(window.secureMechanic)window.secureMechanic();return;}
+    if(role==='DRIVER'||role==='USER'){localStorage.setItem('mahindra_user_role_v2','driver');finalHome();return;}
+    if(window.showLogin)window.showLogin('This account has no valid application role.');
+  };
+
+  // Simple driver wording on the home screen.
+  window.simplifyDriverHome=function(){
+    const role=roleOf(); if(role!=='DRIVER'&&role!=='USER')return;
+    const home=document.getElementById('home');if(!home)return;
+    home.querySelectorAll('.card').forEach(c=>{
+      const n=(c.querySelector('.name')?.textContent||'').trim();
+      if(n==='Vehicle Problem')c.querySelector('.muted').textContent=lang==='kn'?'ಫೋಟೋ ತೆಗೆದು ಸಮಸ್ಯೆ ಹೇಳಿ':lang==='hi'?'फोटो लें और समस्या बताएं':'Take photo + tell problem';
+      if(n==='Speak Problem')c.querySelector('.muted').textContent=lang==='kn'?'ಮಾತನಾಡಿ':lang==='hi'?'बोलें':'Speak';
+      if(n==='Warning Lights')c.querySelector('.muted').textContent=lang==='kn'?'ಲೈಟ್ ಬಂದರೆ ಏನು ಮಾಡಬೇಕು':lang==='hi'?'लाइट आए तो क्या करें':'What to do if light comes';
+      if(n==='Daily Check')c.querySelector('.muted').textContent=lang==='kn'?'ಚಾಲನೆಗೆ ಮೊದಲು':lang==='hi'?'ड्राइव से पहले':'Before driving';
+      if(n==='DPF Regeneration')c.querySelector('.muted').textContent=lang==='kn'?'ಸರಳ ಹಂತಗಳು':lang==='hi'?'सरल चरण':'Simple steps';
+      if(n==='AdBlue / DEF')c.querySelector('.muted').textContent=lang==='kn'?'DEF / AdBlue':lang==='hi'?'DEF / AdBlue':'DEF / AdBlue';
+      if(n==='Driver Safety')c.querySelector('.muted').textContent=lang==='kn'?'ಸುರಕ್ಷಿತವಾಗಿ ಚಾಲನೆ':lang==='hi'?'सुरक्षित ड्राइविंग':'Drive safely';
+      if(n==='Mahindra Data')c.querySelector('.muted').textContent=lang==='kn'?'ಮಹೀಂದ್ರಾ source':lang==='hi'?'महिंद्रा source':'Mahindra source';
+    });
+  };
+
+  const oldRenderHome=window.renderHome;
+  window.renderHome=function(){oldRenderHome();setTimeout(window.simplifyDriverHome,0);};
+
+  // Replace long diagnostic result with five/six large, speakable actions.
+  window.simpleSolution=function(query){
+    const q=esc2(query);
+    const steps=lang==='kn'
+      ? ['🛑 ಸುರಕ್ಷಿತ ಸ್ಥಳದಲ್ಲಿ ನಿಲ್ಲಿಸಿ','⚙️ NEUTRAL','🅿️ HAND BRAKE','🔎 CHECK LAMP','🎤 ಸಮಸ್ಯೆಯನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿ','👷 CALL MECHANIC']
+      : lang==='hi'
+      ? ['🛑 सुरक्षित जगह पर रोकें','⚙️ NEUTRAL','🅿️ HAND BRAKE','🔎 CHECK LAMP','🎤 समस्या साफ बताएं','👷 CALL MECHANIC']
+      : ['🛑 STOP SAFELY','⚙️ NEUTRAL','🅿️ HAND BRAKE','🔎 CHECK LAMP','🎤 SPEAK PROBLEM','👷 CALL MECHANIC'];
+    const body='<div class="notice"><b>'+tr('PROBLEM RECEIVED','समस्या मिली','ಸಮಸ್ಯೆ ಸ್ವೀಕರಿಸಲಾಗಿದೆ')+'</b><div style="font-size:17px;margin-top:7px">'+q+'</div></div><div class="visual-list">'+steps.map((s,i)=>'<div class="visual-item simple-step"><div class="visual-img"><b style="font-size:25px">'+(i+1)+'</b></div><div class="visual-text"><div class="visual-title">'+esc2(s)+'</div></div></div>').join('')+'</div><div id="readStatus" class="status-note">📖 '+tr('Steps are visible. Tap READ STEPS.','Steps स्क्रीन पर हैं। READ STEPS दबाएं।','Steps ಪರದೆಯಲ್ಲಿ ಇವೆ. READ STEPS ಒತ್ತಿ.')+'</div><button class="primary" onclick="readSteps()">🔊 READ STEPS</button>';
+    show(tr('WHAT TO DO NOW','अभी क्या करें','ಈಗ ಏನು ಮಾಡಬೇಕು'),body);
+  };
+
+  // Ensure photo never becomes a fake diagnosis. Photo only confirms receipt.
+  window.driverPhotoSelected=function(input){
+    const st=document.getElementById('driverPhotoStatus');
+    if(st)st.innerHTML=input?.files?.[0]
+      ? '📷 '+tr('PHOTO RECEIVED → TAKE A CLEAR TRUCK / WARNING PHOTO → SPEAK PROBLEM','फोटो मिला → ट्रक / warning की साफ फोटो लें → समस्या बोलें','ಫೋಟೋ ಬಂದಿದೆ → ಟ್ರಕ್ / warning ನ ಸ್ಪಷ್ಟ ಫೋಟೋ ತೆಗೆದುಕೊಳ್ಳಿ → ಸಮಸ್ಯೆ ಮಾತನಾಡಿ')
+      : tr('No photo selected.','फोटो नहीं चुना गया।','ಫೋಟೋ ಆಯ್ಕೆ ಮಾಡಲಾಗಿಲ್ಲ.');
+  };
+
+  // Guaranteed visible read fallback + native Android speech if available.
+  window.readSteps=function(){
+    const status=document.getElementById('readStatus');
+    const text=lang==='kn'?'ಸುರಕ್ಷಿತ ಸ್ಥಳದಲ್ಲಿ ನಿಲ್ಲಿಸಿ. Neutral. Hand brake. Check lamp. ಸಮಸ್ಯೆಯನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿ. Mechanic ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.':lang==='hi'?'सुरक्षित जगह पर रोकें। Neutral। Hand brake। Check lamp। समस्या साफ बताएं। Mechanic से संपर्क करें।':'Stop safely. Neutral. Hand brake. Check lamp. Speak the problem. Call mechanic.';
+    if(status)status.textContent='📖 '+text;
+    try{
+      if(window.AndroidBridge?.speakText){AndroidBridge.speakText(text,lang==='kn'?'kn-IN':lang==='hi'?'hi-IN':'en-IN');}
+      else if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang==='kn'?'kn-IN':lang==='hi'?'hi-IN':'en-IN';u.onend=()=>{if(status)status.textContent='🔊 '+text};u.onerror=()=>{if(status)status.textContent='📖 '+text};speechSynthesis.speak(u);}
+    }catch(e){if(status)status.textContent='📖 '+text;}
+  };
+
+  // Remove technical controls from driver view; keep Admin/Mechanic cloud controls only.
+  function cleanDriver(){
+    if(roleOf()!=='DRIVER'&&roleOf()!=='USER')return;
+    document.querySelectorAll('input,select,textarea').forEach(el=>{if(/api|database|cloud/i.test((el.id||'')+' '+(el.placeholder||'')))el.closest('label,.panel,.admin-card,.mech-form')?.remove();});
+  }
+  window.addEventListener('load',()=>setTimeout(()=>{document.getElementById('modeOverlay')?.remove();cleanDriver();},350));
 })();
 </script></body></html>
