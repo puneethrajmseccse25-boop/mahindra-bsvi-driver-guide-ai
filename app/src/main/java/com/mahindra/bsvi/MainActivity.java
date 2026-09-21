@@ -295,9 +295,9 @@ public class MainActivity extends Activity {
 
                             if (location == null || location.trim().isEmpty()) {
                                 response =
-                                        "{\\"ok\\":false,\\"code\\":"
+                                        "{\"ok\":false,\"code\":"
                                                 + code
-                                                + ",\\"error\\":\\"Backend redirect did not provide a redirect URL.\\"}";
+                                                + ",\"error\":\"Backend redirect did not provide a redirect URL.\"}";
                                 break;
                             }
 
@@ -334,16 +334,16 @@ public class MainActivity extends Activity {
 
                     if (response == null || response.trim().isEmpty()) {
                         response =
-                                "{\\"ok\\":false,\\"code\\":"
+                                "{\"ok\":false,\"code\":"
                                         + code
-                                        + ",\\"error\\":\\"Backend returned an empty response.\\"}";
+                                        + ",\"error\":\"Backend returned an empty response.\"}";
                     }
 
                 } catch (Exception e) {
                     response =
-                            "{\\"ok\\":false,\\"code\\":0,\\"error\\":\\"Network error: "
+                            "{\"ok\":false,\"code\":0,\"error\":\"Network error: "
                                     + escapeJson(e.getMessage())
-                                    + "\\"}";
+                                    + "\"}";
                 }
 
                 final int resultCode = code;
@@ -351,9 +351,9 @@ public class MainActivity extends Activity {
 
                 web.post(() -> {
                     String payload =
-                            "{\\"code\\":"
+                            "{\"code\":"
                                     + resultCode
-                                    + ",\\"body\\":"
+                                    + ",\"body\":"
                                     + JSONObject.quote(resultBody)
                                     + "}";
 
@@ -467,8 +467,8 @@ public class MainActivity extends Activity {
         }
 
         return s
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
+                .replace("\", "\\\")
+                .replace("\"", "\\"")
                 .replace("\n", " ")
                 .replace("\r", " ");
     }
