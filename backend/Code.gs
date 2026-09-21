@@ -109,9 +109,20 @@ function doPost(e) {
 }
 
 function json_(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+  // Use HtmlService for API responses so Google does not apply the
+  // ContentService googleusercontent.com redirect to native clients.
+  // The JSON is carried in a base64url meta value so the Android client
+  // can recover the exact JSON without exposing credentials in the URL.
+  const json = JSON.stringify(obj);
+  const encoded = Utilities.base64EncodeWebSafe(
+    Utilities.newBlob(json).getBytes()
+  );
+  return HtmlService
+    .createHtmlOutput(
+      '<!doctype html><html><head>' +
+      '<meta name="mahindra-json" content="' + encoded + '">' +
+      '</head><body></body></html>'
+    );
 }
 
 function ensureSheet_(ss, name, headers) {
