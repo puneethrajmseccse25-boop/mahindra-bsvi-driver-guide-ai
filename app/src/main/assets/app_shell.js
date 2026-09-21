@@ -3,7 +3,7 @@
   const TOKEN='mahindra_secure_token_v1', USER='mahindra_secure_user_v1', MODE='mahindra_user_role_v2';
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const getUser=()=>{try{return JSON.parse(localStorage.getItem(USER)||'null')}catch(e){return null}};
-  const role=()=>String(getUser()?.role||'').toUpperCase();
+  const role=()=>{const r=String(getUser()?.role||'').toUpperCase();return r==='USER'?'DRIVER':r;};
   const name=()=>getUser()?.name||'';
   const hideOld=()=>{['home','screen','topIntro','languagePanel'].forEach(id=>document.getElementById(id)?.classList.add('hide'));document.getElementById('modeOverlay')?.remove();};
   const app=document.body;
@@ -55,7 +55,7 @@
       ['📚','Mahindra Data','Open the supplied BSVI source library',()=>oldAbout&&oldAbout()],
       ['🧭','App Help','Simple step-by-step mechanic help',()=>help()]
     ]:[
-      ['📷','Vehicle Problem','Take a photo + speak the problem',()=>oldProblem&&oldProblem()],
+      ['📷','Vehicle Problem','Take a photo + get the exact documented solution',()=>window.exactProblem?window.exactProblem():(oldProblem&&oldProblem())],
       ['🚨','Warning Lights','What to do when a warning lamp appears',()=>oldDriverCard('warning')],
       ['♻️','DPF Regeneration','Follow the supplied DPF guidance',()=>oldDriverCard('dpf')],
       ['🔧','Daily Check','Before driving checklist',()=>oldDriverCard('daily')],
@@ -94,7 +94,36 @@
   window.secureMechanic=function(){if(oldSecureMechanic){showContent('MECHANIC DAILY WORK','<div class="notice">Opening secure mechanic tools…</div>');setTimeout(oldSecureMechanic,20)}};
   window.routeAfterLogin=function(){dashboard()};
 
-  window.driverCamera=function(){
+  function meaningfulTokens(s){
+    const stop=new Set(['the','and','for','with','from','this','that','your','you','please','give','solution','solve','what','how','my','as','photo','uploaded','image','problem','vehicle','truck','tell','show','find','need','want','is','are','was','were','to','of','in','on','a','an','or','by','do','does','can','will','me','it','at','be','now','received','screen']);
+    return String(s||'').toLowerCase().replace(/[^a-z0-9\\u0900-\\u097f\\u0c80-\\u0cff\\s]/g,' ').split(/\\s+/).filter(t=>t.length>=3&&!stop.has(t));
+  }
+  function exactKBSearch(query){
+    const kb=Array.isArray(window.mahindraKB)?window.mahindraKB:[]; const q=String(query||'').trim(); const qt=meaningfulTokens(q);
+    if(!qt.length||!kb.length)return []; const qLower=q.toLowerCase();
+    return kb.map(r=>{const txt=String(r.text||'');const hay=(txt+' '+String(r.source||'')+' '+String(r.file||'')).toLowerCase();let score=0,matched=0;
+      qt.forEach(t=>{if(hay.includes(t)){matched++;score+=t.length>=7?3:2;}});
+      if(qLower.length>=8&&hay.includes(qLower))score+=12; return {...r,score,matched};
+    }).filter(r=>r.matched>=2&&r.score>=4).sort((a,b)=>b.score-a.score).slice(0,3);
+  }
+  function documentedPoints(text){
+    const raw=String(text||'').trim(); const numbered=raw.split(/(?=\\b\\d+[.)]\\s)/).map(x=>x.trim()).filter(Boolean);
+    if(numbered.length>=2)return numbered.slice(0,30); return raw.split(/\\n+/).map(x=>x.trim()).filter(Boolean).slice(0,30);
+  }
+  function renderExactSolution(query,fromPhoto){
+    const hits=exactKBSearch(query); let body='<div class="notice"><b>📷 '+(fromPhoto?'PHOTO PROBLEM RECEIVED':'PROBLEM RECEIVED')+'</b><div style="margin-top:8px;font-size:17px;line-height:1.45">'+esc(query)+'</div></div>';
+    if(!hits.length){body+='<div class="notice" style="border-left:6px solid #b71c1c"><b>❌ NO EXACT DOCUMENTED SOLUTION FOUND</b><br><br>Do not use a generic/default repair procedure. Retake a clear photo of the warning/message/component, or speak the exact problem.</div><button class="primary" onclick="exactProblem()">📷 TAKE CLEAR PHOTO AGAIN</button><button class="secondary" onclick="focusProblemText()">🎤 SPEAK / EDIT PROBLEM</button>';showContent('EXACT VEHICLE SOLUTION',body);return;}
+    body+='<div class="notice" style="border-left:6px solid #1b5e20"><b>✅ EXACT DOCUMENTED INFORMATION</b><br>This answer is taken only from the supplied Mahindra BSVI source material. No default steps are added.</div>';
+    hits.forEach((h,idx)=>{body+='<div class="ma-hero" style="margin-top:12px"><div class="ma-brand">'+(idx===0?'EXACT MATCH':'RELATED DOCUMENTED MATCH')+'</div><div class="ma-sub">📚 '+esc(h.source)+(h.page?' • Page / Slide '+esc(h.page):'')+'</div></div>';const pts=documentedPoints(h.text);pts.forEach((p,i)=>{body+='<div class="ma-card" style="margin:8px 0;display:block;min-height:0"><span style="font-size:16px;line-height:1.55;white-space:pre-wrap">'+esc(p)+'</span></div>';});});
+    body+='<div id="exactReadStatus" class="status-note">🔊 Tap READ EXACT SOLUTION to hear only the documented text.</div><button class="primary" onclick="readExactSolution()">🔊 READ EXACT SOLUTION</button>';showContent('EXACT VEHICLE SOLUTION',body);
+  }
+  window.focusProblemText=function(){setTimeout(()=>document.getElementById('driverProblemText')?.focus(),50)};
+  window.findExactSolution=function(){renderExactSolution((document.getElementById('driverProblemText')?.value||'').trim(),false)};
+  window.readExactSolution=function(){const st=document.getElementById('exactReadStatus');if(!st)return;const text=[...document.querySelectorAll('.ma-card span')].map(x=>x.textContent).join('. ');st.textContent='🔊 '+text;try{if(window.AndroidBridge?.speakText)AndroidBridge.speakText(text,'en-IN');else if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-IN';speechSynthesis.speak(u)}}catch(e){}};
+  window.nativePhotoTextResult=function(text){const clean=String(text||'').trim();const el=document.getElementById('driverProblemText');const st=document.getElementById('driverPhotoStatus');if(el&&clean)el.value=clean;if(st)st.textContent=clean?'🔎 Photo text detected. Finding the exact documented solution…':'⚠️ No readable text found. Take a clearer photo of the warning/message.';if(clean)setTimeout(()=>renderExactSolution(clean,true),120);};
+  window.exactProblem=function(){hideOld();let root=document.getElementById('maApp');if(root)root.remove();root=document.createElement('div');root.id='maApp';root.innerHTML='<div class="ma-bar"><button class="ma-icon" onclick="maDashboard()">‹</button><div class="ma-title">VEHICLE PROBLEM<small>'+esc(role())+' • '+esc(name())+'</small></div><button class="ma-icon" onclick="maDashboard()">⌂</button></div><main class="ma-main"><section class="ma-hero"><div class="ma-brand">📷 Take the problem photo</div><div class="ma-sub">The photo is read on the phone and matched only against the supplied Mahindra source library.</div></section><div class="ma-card" style="display:block"><label style="font-weight:900">Problem / photo text</label><textarea id="driverProblemText" rows="6" style="width:100%;box-sizing:border-box;margin-top:8px" placeholder="Speak or type the exact warning/problem"></textarea><div id="driverPhotoStatus" class="status-note"></div><button class="ma-card ma-primary" style="width:100%;margin-top:10px" onclick="startExactVoice()">🎤 SPEAK PROBLEM</button><button class="ma-card" style="width:100%;margin-top:10px" onclick="startExactCamera()">📷 TAKE PHOTO — DIRECT CAMERA</button><button class="ma-card" style="width:100%;margin-top:10px" onclick="findExactSolution()">🔎 FIND EXACT SOLUTION</button></div></main>';app.appendChild(root)};
+  window.startExactCamera=function(){if(window.AndroidBridge?.captureDriverPhoto)AndroidBridge.captureDriverPhoto();};
+  window.startExactVoice=function(){window._speechTarget='driver';const st=document.getElementById('driverPhotoStatus');if(st)st.textContent='🎤 Listening…';if(window.AndroidBridge?.startSpeech){AndroidBridge.startSpeech('en-IN');return;}if(window.SpeechRecognition||window.webkitSpeechRecognition){const R=window.SpeechRecognition||window.webkitSpeechRecognition;const r=new R();r.lang='en-IN';r.onresult=e=>{let t='';for(const x of e.results)t+=x[0].transcript+' ';const el=document.getElementById('driverProblemText');if(el)el.value=t.trim()};r.start()}};  window.driverCamera=function(){
     const st=document.getElementById('driverPhotoStatus')||document.getElementById('photoStatus');if(st)st.textContent='📷 Opening camera…';
     if(window.AndroidBridge&&AndroidBridge.captureDriverPhoto){AndroidBridge.captureDriverPhoto();return}
     const input=document.getElementById('driverCameraInput')||document.getElementById('problemCamera');if(input)input.click();
