@@ -258,9 +258,12 @@ public class MainActivity extends Activity {
                     /*
                      * Google Apps Script ContentService uses a redirect/session
                      * flow. The important rules are:
-                     * 1. Do not convert the login POST into GET.
-                     * 2. Preserve the S session cookie returned by Google.
-                     * 3. Handle the X-If-No-Redirect / 412 flow.
+                     * 1. Send the original login as POST to the /exec URL.
+                     * 2. Apps Script executes doPost(), then redirects the
+                     *    response to a one-time googleusercontent.com URL.
+                     * 3. Fetch that one-time response URL with GET. Sending
+                     *    POST again to googleusercontent.com causes HTTP 405.
+                     * 4. Preserve the Google session cookie between hops.
                      */
                     String cookie = null;
 
@@ -282,14 +285,6 @@ public class MainActivity extends Activity {
                                 "MahindraBSVI-DriverGuideAI/1.0"
                         );
                         c.setRequestProperty("Accept-Encoding", "identity");
-
-                        /*
-                         * Ask Apps Script for its 412 redirect handoff so we
-                         * can preserve POST + body exactly. Google documents
-                         * X-If-No-Redirect for clients that manually follow
-                         * Apps Script redirects.
-                         */
-                        c.setRequestProperty("X-If-No-Redirect", "1");
 
                         if (cookie != null && !cookie.isEmpty()) {
                             c.setRequestProperty("Cookie", cookie);
@@ -341,16 +336,15 @@ public class MainActivity extends Activity {
                         }
 
                         /*
-                         * Apps Script normally answers with a 3xx redirect.
-                         * Preserve the original HTTP method and body on every
-                         * redirect. This is the critical login fix.
+                         * Apps Script executes the POST at /exec, then returns
+                         * a redirect to a one-time googleusercontent.com URL.
+                         * That second URL is read with GET. Repeating the POST
+                         * there is what produces HTTP 405.
                          */
                         if (code == 412
                                 || code == HttpURLConnection.HTTP_MOVED_PERM
                                 || code == HttpURLConnection.HTTP_MOVED_TEMP
-                                || code == HttpURLConnection.HTTP_SEE_OTHER
-                                || code == 307
-                                || code == 308) {
+                                || code == HttpURLConnection.HTTP_SEE_OTHER) {
 
                             c.disconnect();
 
@@ -367,9 +361,28 @@ public class MainActivity extends Activity {
                                     location
                             ).toString();
 
-                            // Apps Script also puts gsessionid in the redirect URL.
-                            // Keep that URL exactly as returned and preserve the
-                            // original POST method/body as documented by Google.
+                            // The Apps Script one-time response endpoint is GET-only.
+                            // The original POST has already executed on /exec.
+                            requestMethod = "GET";
+                            data = new byte[0];
+                            continue;
+                        }
+
+                        if (code == 307 || code == 308) {
+                            c.disconnect();
+
+                            if (location == null || location.trim().isEmpty()) {
+                                response =
+                                        "{\"ok\":false,\"code\":"
+                                                + code
+                                                + ",\"error\":\"Backend redirect did not provide a redirect URL.\"}";
+                                break;
+                            }
+
+                            currentUrl = new URL(
+                                    new URL(currentUrl),
+                                    location
+                            ).toString();
                             continue;
                         }
 
