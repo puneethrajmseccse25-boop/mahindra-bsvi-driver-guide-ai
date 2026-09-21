@@ -26,6 +26,9 @@ jobs:
       - name: Apply final UX and camera patch
         run: python3 build/final_ux_patch.py
 
+      - name: Apply guaranteed login startup fix
+        run: python3 build/startup_fix.py
+
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
