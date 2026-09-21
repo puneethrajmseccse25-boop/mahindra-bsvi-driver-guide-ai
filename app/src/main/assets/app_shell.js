@@ -131,10 +131,9 @@
   window.openProblemCamera=window.driverCamera;
   window.nativeCameraResult=function(ok){const st=document.getElementById('driverPhotoStatus')||document.getElementById('photoStatus');if(st)st.textContent=ok?'✅ Photo captured. Now speak or type the problem.':'❌ Camera was not completed. Tap Take Photo again.'};
 
-  if(!sessionStorage.getItem('ma_fast_boot_v1')){
-    sessionStorage.setItem('ma_fast_boot_v1','1');localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);
-    setTimeout(()=>location.reload(),30);return;
-  }
+  // Fresh Activity launches are reset by the native layer. Do not reload the WebView here:
+  // reloading races the secure-login bootstrap and can leave only the static header visible.
+  localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);
   hideOld();
-  setTimeout(()=>{if(!localStorage.getItem(TOKEN)||!localStorage.getItem(USER)){window.scrollTo(0,0)}else dashboard()},80);
+  setTimeout(()=>{if(typeof window.showLogin==='function') window.showLogin();},120);
 })();
