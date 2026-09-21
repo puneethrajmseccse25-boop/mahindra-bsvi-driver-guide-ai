@@ -265,11 +265,11 @@ public class MainActivity extends Activity {
                         c.setRequestProperty("Accept-Encoding", "identity");
 
                         /*
-                         * Ask Apps Script not to perform its redirect for us.
-                         * It can return 412 + X-Redirect-Location + S cookie.
+                         * Let Apps Script return its normal redirect. We follow
+                         * it manually below so the original POST method/body is
+                         * preserved instead of allowing HttpURLConnection to
+                         * turn POST into GET.
                          */
-                        c.setRequestProperty("X-If-No-Redirect", "1");
-
                         if (cookie != null && !cookie.isEmpty()) {
                             c.setRequestProperty("Cookie", cookie);
                         }
@@ -294,9 +294,16 @@ public class MainActivity extends Activity {
                          * Keep Google's session cookie. In particular this is
                          * normally the S cookie used for Apps Script sessions.
                          */
-                        String setCookie = c.getHeaderField("Set-Cookie");
-                        if (setCookie != null && !setCookie.trim().isEmpty()) {
-                            cookie = mergeCookie(cookie, extractCookiePair(setCookie));
+                        java.util.Map<String, java.util.List<String>> headers = c.getHeaderFields();
+                        if (headers != null) {
+                            java.util.List<String> cookies = headers.get("Set-Cookie");
+                            if (cookies != null) {
+                                for (String setCookie : cookies) {
+                                    if (setCookie != null && !setCookie.trim().isEmpty()) {
+                                        cookie = mergeCookie(cookie, extractCookiePair(setCookie));
+                                    }
+                                }
+                            }
                         }
 
                         String location = c.getHeaderField("X-Redirect-Location");
@@ -305,13 +312,11 @@ public class MainActivity extends Activity {
                         }
 
                         /*
-                         * Apps Script may answer 412 when X-If-No-Redirect is
-                         * requested, or 3xx when it performs its normal flow.
-                         * In ALL cases we preserve the original HTTP method
-                         * and body. This is the critical login fix.
+                         * Apps Script normally answers with a 3xx redirect.
+                         * Preserve the original HTTP method and body on every
+                         * redirect. This is the critical login fix.
                          */
-                        if (code == 412
-                                || code == HttpURLConnection.HTTP_MOVED_PERM
+                        if (code == HttpURLConnection.HTTP_MOVED_PERM
                                 || code == HttpURLConnection.HTTP_MOVED_TEMP
                                 || code == HttpURLConnection.HTTP_SEE_OTHER
                                 || code == 307
