@@ -1,0 +1,1 @@
+Use normal Gradle debug signing (v2+) for deadline device installation. Do not manually v1-resign.
