@@ -317,11 +317,19 @@ public class MainActivity extends Activity {
                          */
                         java.util.Map<String, java.util.List<String>> headers = c.getHeaderFields();
                         if (headers != null) {
-                            java.util.List<String> cookies = headers.get("Set-Cookie");
-                            if (cookies != null) {
-                                for (String setCookie : cookies) {
-                                    if (setCookie != null && !setCookie.trim().isEmpty()) {
-                                        cookie = mergeCookie(cookie, extractCookiePair(setCookie));
+                            // Header-name casing is not guaranteed by HttpURLConnection.
+                            // Read Set-Cookie case-insensitively so the Apps Script S
+                            // session cookie is never lost between redirect hops.
+                            for (java.util.Map.Entry<String, java.util.List<String>> entry : headers.entrySet()) {
+                                String headerName = entry.getKey();
+                                if (headerName != null && "Set-Cookie".equalsIgnoreCase(headerName)) {
+                                    java.util.List<String> cookies = entry.getValue();
+                                    if (cookies != null) {
+                                        for (String setCookie : cookies) {
+                                            if (setCookie != null && !setCookie.trim().isEmpty()) {
+                                                cookie = mergeCookie(cookie, extractCookiePair(setCookie));
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -359,7 +367,9 @@ public class MainActivity extends Activity {
                                     location
                             ).toString();
 
-                            // IMPORTANT: keep requestMethod and data unchanged.
+                            // Apps Script also puts gsessionid in the redirect URL.
+                            // Keep that URL exactly as returned and preserve the
+                            // original POST method/body as documented by Google.
                             continue;
                         }
 
