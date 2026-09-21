@@ -121,7 +121,9 @@ function json_(obj) {
     .createHtmlOutput(
       '<!doctype html><html><head>' +
       '<meta name="mahindra-json" content="' + encoded + '">' +
-      '</head><body></body></html>'
+      '</head><body>' +
+      '<div id="mahindra-json" style="display:none">' + encoded + '</div>' +
+      '</body></html>'
     );
 }
 
