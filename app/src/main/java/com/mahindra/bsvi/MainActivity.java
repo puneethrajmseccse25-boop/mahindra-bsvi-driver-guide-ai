@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
     private static final int REQ_AUDIO = 3001;
     private static final int REQ_CAMERA = 3002;
     private static final int REQ_FILE = 3003;
+    private static final int REQ_DIRECT_CAMERA = 3004;
 
     private WebView web;
     private SpeechRecognizer speechRecognizer;
@@ -118,6 +119,12 @@ public class MainActivity extends Activity {
                                 + "}};})();",
                         null
                 );
+
+                // Load the final professional dashboard/login/navigation shell.
+                view.evaluateJavascript(
+                        "(function(){var s=document.createElement('script');s.src='file:///android_asset/app_shell.js';document.head.appendChild(s);})();",
+                        null
+                );
             }
 
             @Override
@@ -153,6 +160,75 @@ public class MainActivity extends Activity {
                 new AndroidBridge(),
                 "AndroidBridge"
         );
+    }
+
+    private void openDirectCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.CAMERA},
+                    REQ_DIRECT_CAMERA
+            );
+            return;
+        }
+
+        try {
+            File dir = new File(getCacheDir(), "camera");
+            if (!dir.exists()) dir.mkdirs();
+
+            String stamp = new SimpleDateFormat(
+                    "yyyyMMdd_HHmmss",
+                    Locale.US
+            ).format(new Date());
+
+            File photo = new File(
+                    dir,
+                    "MAHINDRA_DRIVER_" + stamp + ".jpg"
+            );
+
+            cameraUri = FileProvider.getUriForFile(
+                    this,
+                    "com.mahindra.bsvi.driverguide.fileprovider",
+                    photo
+            );
+
+            Intent i = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            i.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
+            i.addFlags(
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                            | Intent.FLAG_GRANT_READ_URI_PERMISSION
+            );
+
+            if (i.resolveActivity(getPackageManager()) == null) {
+                sendCameraResult(false);
+                Toast.makeText(
+                        this,
+                        "No camera application is available",
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            startActivityForResult(i, REQ_DIRECT_CAMERA);
+        } catch (Exception e) {
+            sendCameraResult(false);
+            Toast.makeText(
+                    this,
+                    "Camera could not be opened",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+    private void sendCameraResult(boolean ok) {
+        if (web != null) {
+            web.post(() -> web.evaluateJavascript(
+                    "window.nativeCameraResult && window.nativeCameraResult(" +
+                            (ok ? "true" : "false") + ")",
+                    null
+            ));
+        }
     }
 
     private void openCameraForFileChooser() {
@@ -522,6 +598,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void captureDriverPhoto() {
+            runOnUiThread(() -> openDirectCamera());
+        }
+
+        @JavascriptInterface
         public void openCamera() {
 
             runOnUiThread(() -> {
@@ -786,6 +867,18 @@ public class MainActivity extends Activity {
                 );
             }
 
+        } else if (requestCode == REQ_DIRECT_CAMERA) {
+
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                openDirectCamera();
+
+            } else {
+
+                sendCameraResult(false);
+            }
+
         } else if (requestCode == REQ_CAMERA) {
 
             if (grantResults.length > 0
@@ -815,6 +908,16 @@ public class MainActivity extends Activity {
                 resultCode,
                 data
         );
+
+        if (requestCode == REQ_DIRECT_CAMERA) {
+
+            sendCameraResult(
+                    resultCode == RESULT_OK
+                            && cameraUri != null
+            );
+
+            return;
+        }
 
         if (requestCode == REQ_FILE) {
 
