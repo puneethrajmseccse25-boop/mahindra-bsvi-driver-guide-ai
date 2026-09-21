@@ -43,3 +43,6 @@ Run the backend initialization/first-admin setup according to the comments at th
 
 ## Important
 The bootstrap admin values in Apps Script are placeholders in this repository. Do not commit real passwords to GitHub. After creating the first admin, remove the temporary bootstrap values from Apps Script.
+
+
+<!-- Release rebuild trigger: 2026-09-21 14:45 IST -->
