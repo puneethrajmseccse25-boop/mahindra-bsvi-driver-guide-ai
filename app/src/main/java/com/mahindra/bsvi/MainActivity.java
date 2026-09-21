@@ -467,8 +467,8 @@ public class MainActivity extends Activity {
         }
 
         return s
-                .replace("\", "\\\")
-                .replace("\"", "\\"")
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
                 .replace("\n", " ")
                 .replace("\r", " ");
     }
