@@ -40,35 +40,75 @@
     const card=cards.find(c=>(c.innerText||'').toLowerCase().includes(label.toLowerCase()));
     if(card){card.click();return} if(label==='vehicle'&&oldProblem)oldProblem();
   }
-  function dashboard(){
-    hideOld();document.getElementById('secureAuth')?.remove();
-    let root=document.getElementById('maApp');if(root)root.remove();
-    root=document.createElement('div');root.id='maApp';
-    const r=role(),u=getUser(),isAdmin=r==='ADMIN',isMech=r==='MECHANIC';
-    const cards=isAdmin?[
-      ['👥','User Management','Create, activate and manage accounts',()=>oldSecureAdmin&&oldSecureAdmin()],
-      ['📋','Daily Work','View mechanic work records',()=>oldSecureAdmin&&oldSecureAdmin()],
-      ['📚','Mahindra Data','Open the supplied BSVI source library',()=>oldAbout&&oldAbout()],
-      ['🧭','App Help','See how each role uses the app',()=>help()]
-    ]:isMech?[
-      ['🔧','Daily Work','Record vehicle work and save centrally',()=>oldSecureMechanic&&oldSecureMechanic()],
-      ['📚','Mahindra Data','Open the supplied BSVI source library',()=>oldAbout&&oldAbout()],
-      ['🧭','App Help','Simple step-by-step mechanic help',()=>help()]
-    ]:[
-      ['📷','Vehicle Problem','Take a photo + get the exact documented solution',()=>window.exactProblem?window.exactProblem():(oldProblem&&oldProblem())],
-      ['🚨','Warning Lights','What to do when a warning lamp appears',()=>oldDriverCard('warning')],
-      ['♻️','DPF Regeneration','Follow the supplied DPF guidance',()=>oldDriverCard('dpf')],
-      ['🔧','Daily Check','Before driving checklist',()=>oldDriverCard('daily')],
-      ['💧','AdBlue / DEF','Basic operating guidance',()=>oldDriverCard('adblue')],
-      ['🛑','Driver Safety','Safety guidance',()=>oldDriverCard('safety')],
-      ['📚','Mahindra Data','Open the supplied BSVI source library',()=>oldAbout&&oldAbout()],
-      ['🧭','App Help','Get help at every step',()=>help()]
-    ];
-    root.innerHTML=`<div class="ma-bar"><button class="ma-icon" aria-label="menu" onclick="maOpenMenu()">☰</button><div class="ma-title">MAHINDRA BSVI DRIVER GUIDE AI<small>Secure operational assistant</small></div><button class="ma-icon" aria-label="logout" onclick="maLogout()">⎋</button></div><main class="ma-main"><section class="ma-hero"><div class="ma-brand">Welcome, ${esc(u?.name||'User')}</div><div class="ma-sub">Your role controls the tools shown below.</div><div class="ma-role">🔐 ${esc(r||'USER')}</div></section><div class="ma-section">Quick actions</div><section class="ma-grid" id="maCards"></section></main><div id="maDrawer" class="ma-drawer" onclick="if(event.target===this)maCloseMenu()"><aside class="ma-sheet"><div class="ma-sheet-head"><strong>MENU<br><small style="color:#667085">${esc(r)} • ${esc(u?.name||'')}</small></strong><button class="ma-icon" style="background:#17202a" onclick="maCloseMenu()">×</button></div><button class="ma-menu-btn" onclick="maDashboard()">⌂ Dashboard</button><div id="maMenuItems"></div><button class="ma-menu-btn" onclick="maOpenHelp()">🧭 App Help</button><button class="ma-menu-btn danger" onclick="maLogout()">⎋ Log out</button></aside></div>`;
-    app.appendChild(root);
-    const box=root.querySelector('#maCards');cards.forEach((c,i)=>{const b=document.createElement('button');b.className='ma-card'+(i===0?' ma-primary':'');b.innerHTML=`<b>${c[0]}</b><span>${esc(c[1])}</span><small>${esc(c[2])}</small>`;b.onclick=c[3];box.appendChild(b)});
-    const mi=root.querySelector('#maMenuItems');cards.forEach(c=>{const b=document.createElement('button');b.className='ma-menu-btn';b.textContent=c[0]+'  '+c[1];b.onclick=c[3];mi.appendChild(b)});
+
+  function apiRequest(action,payload,done){
+    const req=Object.assign({action:action,token:localStorage.getItem(TOKEN)||''},payload||{});
+    const prev=window.appHttpResult;
+    window.appHttpResult=function(raw){
+      let out=raw,res=null;
+      try{out=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){}
+      try{res=typeof out.body==='string'?JSON.parse(out.body):(out.body||out);}catch(e){try{res=typeof raw==='string'?JSON.parse(raw):raw;}catch(e2){res={ok:false,error:'Backend response could not be read.'};}}
+      window.appHttpResult=prev;
+      if(done)done(res);
+    };
+    try{
+      if(!window.AndroidBridge||!AndroidBridge.cloudRequest){window.appHttpResult=prev;done&&done({ok:false,error:'Android network bridge is unavailable.'});return;}
+      AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify(req));
+    }catch(e){window.appHttpResult=prev;done&&done({ok:false,error:String(e.message||e)});}
   }
+
+  function roleLabel(r){r=String(r||'').toUpperCase();return r==='USER'?'DRIVER':r;}
+  function roleName(r){r=roleLabel(r);return r==='ADMIN'?'Administrator':r==='MECHANIC'?'Mechanic':'Driver';}
+
+  function dashboard(){
+    hideOld();document.getElementById('secureAuth')?.remove();document.getElementById('maLogin')?.remove();
+    let root=document.getElementById('maApp');if(root)root.remove();root=document.createElement('div');root.id='maApp';
+    const u=getUser()||{},r=roleLabel(u.role),admin=r==='ADMIN',mech=r==='MECHANIC';
+    root.innerHTML='<div class="ma-bar"><button class="ma-icon" onclick="maOpenMenu()">☰</button><div class="ma-title">MAHINDRA BSVI<small>'+esc(roleName(r))+' • '+esc(u.name||'')+'</small></div><button class="ma-icon" onclick="maLogout()">⎋</button></div><main class="ma-main"><section class="ma-hero"><div class="ma-brand">Welcome, '+esc(u.name||'User')+'</div><div class="ma-sub">Secure role-based dashboard</div><div class="ma-role">🔐 '+esc(r)+' • '+esc(roleName(r))+'</div></section><div class="ma-section">'+(admin?'ADMINISTRATION':mech?'MECHANIC WORK':'DRIVER GUIDE')+'</div><section class="ma-grid" id="maCards"></section></main><div id="maDrawer" class="ma-drawer" onclick="if(event.target===this)maCloseMenu()"><aside class="ma-sheet"><div class="ma-sheet-head"><strong>MENU<br><small style="color:#667085">'+esc(r)+' • '+esc(u.name||'')+'</small></strong><button class="ma-icon" style="background:#17202a" onclick="maCloseMenu()">×</button></div><button class="ma-menu-btn" onclick="maDashboard()">⌂ Dashboard</button><div id="maMenuItems"></div><button class="ma-menu-btn" onclick="maOpenHelp()">🧭 App Help</button><button class="ma-menu-btn danger" onclick="maLogout()">⎋ Log out</button></aside></div>';
+    app.appendChild(root);
+    let cards;
+    if(admin) cards=[['👥','MANAGE USERS','Add drivers, mechanics and admins • status • role • password',adminUsers],['👨‍🔧','MECHANIC DAILY UPDATES','View all mechanic work from the central DailyWork sheet',adminWork],['📝','PROBLEM REPORTS','View driver vehicle problem reports',adminProblems],['📚','MAHINDRA DATA','Open supplied BSVI source library',()=>oldAbout&&oldAbout()]];
+    else if(mech) cards=[['➕','DAILY WORK UPDATE','Vehicle + work completed + voice • save centrally',mechanicUpdate],['📋','MY WORK RECORDS','View your central daily updates',mechanicRecords],['📚','MAHINDRA DATA','Open supplied BSVI source library',()=>oldAbout&&oldAbout()]];
+    else cards=[['📷','VEHICLE PROBLEM','Photo / voice / text • exact documented solution',()=>window.exactProblem()],['🚨','WARNING LIGHTS','Warning-lamp guidance',()=>oldDriverCard('warning')],['♻️','DPF REGENERATION','DPF guidance',()=>oldDriverCard('dpf')],['🔧','DAILY CHECK','Before-driving checklist',()=>oldDriverCard('daily')],['💧','ADBLUE / DEF','Operating guidance',()=>oldDriverCard('adblue')],['🛑','DRIVER SAFETY','Safety guidance',()=>oldDriverCard('safety')],['📚','MAHINDRA DATA','Open supplied BSVI source library',()=>oldAbout&&oldAbout()]];
+    const box=root.querySelector('#maCards'),mi=root.querySelector('#maMenuItems');
+    cards.forEach((c,i)=>{const el=document.createElement('button');el.className='ma-card'+(i===0?' ma-primary':'');el.innerHTML='<b>'+c[0]+'</b><span>'+esc(c[1])+'</span><small>'+esc(c[2])+'</small>';el.onclick=c[3];box.appendChild(el);const m=document.createElement('button');m.className='ma-menu-btn';m.textContent=c[0]+'  '+c[1];m.onclick=c[3];mi.appendChild(m);});
+  }
+
+  function renderLogin(message){
+    hideOld();document.getElementById('maApp')?.remove();document.getElementById('secureAuth')?.remove();
+    let root=document.getElementById('maLogin');if(root)root.remove();root=document.createElement('div');root.id='maLogin';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#f5f7fa;overflow:auto;padding:24px;box-sizing:border-box;font-family:Arial,sans-serif';
+    root.innerHTML='<div style="min-height:100%;display:flex;align-items:center;justify-content:center"><div class="auth-card" style="width:min(620px,100%);background:#fff;padding:34px 30px;border-radius:24px;box-sizing:border-box"><div style="font-size:72px;text-align:center">🚛</div><h1 style="text-align:center;color:#b71c1c;margin:10px 0 6px;font-size:38px">MAHINDRA BSVI</h1><p style="text-align:center;color:#667085;font-size:20px;margin:0 0 30px">Driver & Mechanic Guide AI • Secure Login</p><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">10-Digit Mobile Number</label><input id="maLoginMobile" inputmode="numeric" maxlength="10" style="width:100%;box-sizing:border-box;padding:18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px;margin-bottom:20px"><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">Password</label><input id="maLoginPass" type="password" maxlength="64" style="width:100%;box-sizing:border-box;padding:18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px;margin-bottom:20px"><button id="maLoginBtn" style="width:100%;padding:20px;border:0;border-radius:14px;background:#b71c1c;color:#fff;font-size:23px;font-weight:900">🔐 LOGIN</button><div id="maLoginErr" style="color:#b71c1c;font-weight:800;font-size:18px;margin-top:16px;min-height:26px">'+esc(message||'')+'</div><div style="color:#667085;font-size:15px;margin-top:16px;line-height:1.4">Driver/Mechanic accounts use the last 4 digits of the mobile as the initial password unless the Admin sets a custom password.</div></div></div>';
+    document.body.appendChild(root);
+    root.querySelector('#maLoginBtn').onclick=function(){
+      const mobile=root.querySelector('#maLoginMobile').value.replace(/\D/g,''),pass=root.querySelector('#maLoginPass').value,err=root.querySelector('#maLoginErr'),btn=root.querySelector('#maLoginBtn');
+      if(!/^\d{10}$/.test(mobile)||!pass){err.textContent='Enter the 10-digit mobile number and password.';return;}
+      btn.disabled=true;btn.textContent='⏳ LOGGING IN...';err.textContent='';
+      window.nativeLoginResult=function(raw){let res=raw;try{if(typeof raw==='string')res=JSON.parse(raw);}catch(e){}if(res&&res.ok){localStorage.setItem(TOKEN,String(res.token||''));localStorage.setItem(USER,JSON.stringify(res.user||{}));localStorage.setItem(MODE,roleLabel(res.user?.role).toLowerCase());window.nativeLoginResult=null;root.remove();dashboard();}else{err.textContent=(res&&res.error)||'Mobile number or password is incorrect.';btn.disabled=false;btn.textContent='🔐 LOGIN';window.nativeLoginResult=null;}};
+      try{if(AndroidBridge?.secureLogin)AndroidBridge.secureLogin(mobile,pass);else throw new Error('Secure login bridge unavailable');}catch(e){err.textContent=e.message||String(e);btn.disabled=false;btn.textContent='🔐 LOGIN';window.nativeLoginResult=null;}
+    };
+  }
+  window.showLogin=renderLogin;
+
+  function page(title,html){
+    hideOld();document.getElementById('maLogin')?.remove();document.getElementById('maApp')?.remove();
+    const root=document.createElement('div');root.id='maApp';root.innerHTML='<div class="ma-bar"><button class="ma-icon" onclick="maDashboard()">‹</button><div class="ma-title">'+esc(title)+'<small>'+esc(roleLabel(getUser()?.role))+' • '+esc(name())+'</small></div><button class="ma-icon" onclick="maDashboard()">⌂</button></div><main class="ma-main">'+html+'</main>';app.appendChild(root);
+  }
+
+  function adminUsers(){
+    page('MANAGE USERS','<section class="ma-hero"><div class="ma-brand">👥 Add User</div><div class="ma-sub">Mobile number is the login username.</div><div style="display:grid;gap:10px;margin-top:15px"><input id="auName" placeholder="Name" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><input id="auMobile" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><select id="auRole" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><option>DRIVER</option><option>MECHANIC</option><option>ADMIN</option></select><select id="auStatus" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><option>ACTIVE</option><option>DISABLED</option></select><input id="auPass" type="password" placeholder="Password (optional; blank = last 4)" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><button class="ma-card ma-primary" style="width:100%" onclick="addManagedUser()">➕ CREATE USER</button><div id="auMsg" class="status-note"></div></div></section><section class="ma-hero"><div class="ma-brand">Current Users</div><div id="userList">Loading…</div></section>');loadUsers();
+  }
+  function loadUsers(){apiRequest('list_users',{},r=>{const box=document.getElementById('userList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load users.');return;}box.innerHTML='';(r.users||[]).forEach(u=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:13px;margin:9px 0';d.innerHTML='<b>'+esc(u.name)+'</b><div style="color:#667085">'+esc(u.mobile)+' • '+esc(roleLabel(u.role))+' • '+esc(u.status)+'</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><select id="role_'+u.id+'" style="padding:8px"><option '+(roleLabel(u.role)==='DRIVER'?'selected':'')+'>DRIVER</option><option '+(u.role==='MECHANIC'?'selected':'')+'>MECHANIC</option><option '+(u.role==='ADMIN'?'selected':'')+'>ADMIN</option></select><select id="status_'+u.id+'" style="padding:8px"><option '+(u.status==='ACTIVE'?'selected':'')+'>ACTIVE</option><option '+(u.status!=='ACTIVE'?'selected':'')+'>DISABLED</option></select><button onclick="changeManagedRole(\''+u.id+'\')">Role</button><button onclick="changeManagedStatus(\''+u.id+'\')">Status</button><button onclick="resetManagedPassword(\''+u.id+'\')">Password</button></div>';box.appendChild(d);});});}
+  function addManagedUser(){const msg=document.getElementById('auMsg'),n=document.getElementById('auName').value.trim(),m=document.getElementById('auMobile').value.replace(/\D/g,''),r=document.getElementById('auRole').value,s=document.getElementById('auStatus').value,p=document.getElementById('auPass').value;if(!n||!/\d{10}/.test(m)){msg.textContent='Enter name and 10-digit mobile.';return;}apiRequest('add_user',{name:n,mobile:m,role:r,password:p},res=>{if(!res.ok){msg.textContent='❌ '+(res.error||'Could not create user.');return;}msg.textContent='✅ User created. Initial password: '+(p||m.slice(-4));apiRequest('set_user_status',{userId:res.user.id,status:s},()=>loadUsers());document.getElementById('auName').value='';document.getElementById('auMobile').value='';document.getElementById('auPass').value='';});}
+  function changeManagedRole(id){const r=document.getElementById('role_'+id).value;apiRequest('set_user_role',{userId:id,role:r},res=>{alert(res.ok?'Role updated.':(res.error||'Failed.'));loadUsers();});}
+  function changeManagedStatus(id){const s=document.getElementById('status_'+id).value;apiRequest('set_user_status',{userId:id,status:s},res=>{alert(res.ok?'Status updated.':(res.error||'Failed.'));loadUsers();});}
+  function resetManagedPassword(id){const p=prompt('Enter new password (minimum 8 characters):');if(!p)return;apiRequest('set_user_password',{userId:id,password:p},res=>alert(res.ok?'Password updated.':(res.error||'Failed.')));}
+  function workRecords(admin){page(admin?'MECHANIC DAILY UPDATES':'MY WORK RECORDS','<section class="ma-hero"><div class="ma-brand">'+(admin?'👨‍🔧 All Mechanic Records':'📋 Your Records')+'</div><div class="ma-sub">Central DailyWork records</div><div id="workList" style="margin-top:12px">Loading…</div></section>');apiRequest('list_work',{},r=>{const box=document.getElementById('workList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load records.');return;}if(!(r.records||[]).length){box.innerHTML='<div class="status-note">No records yet.</div>';return;}box.innerHTML='';r.records.forEach(x=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0';d.innerHTML='<b>'+esc(x.date)+' • '+esc(x.vehicleNumber)+'</b><div>'+esc(x.userName)+' • '+esc(x.workCompleted)+'</div><small style="color:#667085">'+esc(x.createdAt)+'</small>';box.appendChild(d);});});}
+  function adminWork(){workRecords(true)} function mechanicRecords(){workRecords(false)}
+  function mechanicUpdate(){const u=getUser()||{};page('DAILY WORK UPDATE','<section class="ma-hero"><div class="ma-brand">➕ Record today\'s work</div><div class="ma-sub">Mechanic: '+esc(u.name||'')+'</div><div style="display:grid;gap:12px;margin-top:15px"><input id="mwVehicle" placeholder="Vehicle number" style="padding:15px;border:1px solid #d0d5dd;border-radius:10px;font-size:18px"><textarea id="mwWork" rows="7" placeholder="What work was completed?" style="padding:15px;border:1px solid #d0d5dd;border-radius:10px;font-size:18px"></textarea><button class="ma-card" onclick="speakMechanicWork()">🎤 VOICE UPDATE</button><button class="ma-card ma-primary" onclick="saveMechanicWork()">💾 SAVE DAILY UPDATE</button><div id="mwMsg" class="status-note"></div></div></section>');}
+  function speakMechanicWork(){const st=document.getElementById('mwMsg');if(st)st.textContent='🎤 Listening…';window.nativeSpeechResult=function(text){const el=document.getElementById('mwWork');if(el)el.value=text||'';if(st)st.textContent=text?'✅ Voice captured.':'⚠️ No voice text captured.';window.nativeSpeechResult=null;};AndroidBridge.startSpeech('en-IN');}
+  function saveMechanicWork(){const v=document.getElementById('mwVehicle').value.trim(),w=document.getElementById('mwWork').value.trim(),msg=document.getElementById('mwMsg');if(!v||!w){msg.textContent='Vehicle number and work completed are required.';return;}apiRequest('save_work',{date:new Date().toISOString().slice(0,10),vehicleNumber:v,workCompleted:w},r=>{msg.textContent=r.ok?'✅ Daily update saved centrally.':'❌ '+(r.error||'Save failed.');});}
+  function adminProblems(){page('PROBLEM REPORTS','<section class="ma-hero"><div class="ma-brand">📝 Driver Problem Reports</div><div id="problemList">Loading…</div></section>');apiRequest('list_problems',{},r=>{const box=document.getElementById('problemList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load reports.');return;}if(!(r.records||[]).length){box.innerHTML='<div class="status-note">No reports yet.</div>';return;}box.innerHTML='';r.records.forEach(x=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0';d.innerHTML='<b>'+esc(x.date)+' '+esc(x.time)+' • '+esc(x.vehicleNumber||'No vehicle')+'</b><div>'+esc(x.userName)+' • '+esc(roleLabel(x.role))+'</div><div style="margin-top:7px;white-space:pre-wrap">'+esc(x.problem||x.photoText)+'</div>';box.appendChild(d);});});}
+
   function help(){
     hideOld();const r=role();
     const title=r==='ADMIN'?'ADMIN — what you can do':r==='MECHANIC'?'MECHANIC — what you can do':'DRIVER — what you can do';
@@ -90,8 +130,8 @@
   };
 
   window.finalHome=dashboard;window.uxHome=dashboard;
-  window.secureAdmin=function(){if(oldSecureAdmin){showContent('ADMIN DASHBOARD','<div class="notice">Opening secure administration…</div>');setTimeout(oldSecureAdmin,20)}};
-  window.secureMechanic=function(){if(oldSecureMechanic){showContent('MECHANIC DAILY WORK','<div class="notice">Opening secure mechanic tools…</div>');setTimeout(oldSecureMechanic,20)}};
+  window.secureAdmin=function(){dashboard()};
+  window.secureMechanic=function(){dashboard()};
   window.routeAfterLogin=function(){dashboard()};
 
   function meaningfulTokens(s){
@@ -135,5 +175,5 @@
   // reloading races the secure-login bootstrap and can leave only the static header visible.
   localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);
   hideOld();
-  setTimeout(()=>{if(typeof window.showLogin==='function') window.showLogin();},120);
+  setTimeout(()=>{renderLogin();},120);
 })();
