@@ -83,8 +83,22 @@
       const mobile=root.querySelector('#maLoginMobile').value.replace(/\D/g,''),pass=root.querySelector('#maLoginPass').value,err=root.querySelector('#maLoginErr'),btn=root.querySelector('#maLoginBtn');
       if(!/^\d{10}$/.test(mobile)||!pass){err.textContent='Enter the 10-digit mobile number and password.';return;}
       btn.disabled=true;btn.textContent='⏳ LOGGING IN...';err.textContent='';
-      window.nativeLoginResult=function(raw){let res=raw;try{if(typeof raw==='string')res=JSON.parse(raw);}catch(e){}if(res&&res.ok){localStorage.setItem(TOKEN,String(res.token||''));localStorage.setItem(USER,JSON.stringify(res.user||{}));localStorage.setItem(MODE,roleLabel(res.user?.role).toLowerCase());window.nativeLoginResult=null;root.remove();dashboard();}else{err.textContent=(res&&res.error)||'Mobile number or password is incorrect.';btn.disabled=false;btn.textContent='🔐 LOGIN';window.nativeLoginResult=null;}};
-      try{if(AndroidBridge?.secureLogin)AndroidBridge.secureLogin(mobile,pass);else throw new Error('Secure login bridge unavailable');}catch(e){err.textContent=e.message||String(e);btn.disabled=false;btn.textContent='🔐 LOGIN';window.nativeLoginResult=null;}
+      const previousHttp=window.appHttpResult;
+      let finished=false;
+      const finishLogin=(res)=>{if(finished)return;finished=true;window.appHttpResult=previousHttp;if(res&&res.ok){localStorage.setItem(TOKEN,String(res.token||''));localStorage.setItem(USER,JSON.stringify(res.user||{}));localStorage.setItem(MODE,roleLabel(res.user?.role).toLowerCase());root.remove();dashboard();}else{err.textContent=(res&&res.error)||'Mobile number or password is incorrect.';btn.disabled=false;btn.textContent='🔐 LOGIN';}};
+      window.appHttpResult=function(raw){
+        let out=raw,res=null;
+        try{out=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){}
+        try{res=typeof out.body==='string'?JSON.parse(out.body):(out.body||out);}catch(e){
+          try{res=typeof raw==='string'?JSON.parse(raw):raw;}catch(e2){res={ok:false,error:'Backend returned non-JSON response (HTTP '+String(out?.code??200)+').'};}
+        }
+        finishLogin(res);
+      };
+      try{
+        if(AndroidBridge?.cloudRequest) AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify({action:'login',username:mobile,password:pass}));
+        else throw new Error('Android network bridge unavailable');
+      }catch(e){finishLogin({ok:false,error:e.message||String(e)});}
+      setTimeout(()=>{if(!finished)finishLogin({ok:false,error:'Login request timed out. Please try again.'});},70000);
     };
   }
   window.showLogin=renderLogin;
