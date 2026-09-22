@@ -29,6 +29,9 @@ jobs:
       - name: Apply guaranteed login startup fix
         run: python3 build/startup_fix.py
 
+      - name: Apply deterministic network/login fix
+        run: python3 build/network_fix.py
+
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
