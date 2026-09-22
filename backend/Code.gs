@@ -28,7 +28,8 @@ const CFG = {
   SESSION_TTL_SECONDS: 8 * 60 * 60,
   USERS_SHEET: 'Users',
   WORK_SHEET: 'DailyWork',
-  AUDIT_SHEET: 'AuditLog'
+  AUDIT_SHEET: 'AuditLog',
+  PROBLEM_SHEET: 'ProblemReports'
 };
 
 function setBootstrapConfig() {
@@ -64,6 +65,9 @@ function initializeBackend() {
   ]);
   ensureSheet_(ss, CFG.AUDIT_SHEET, [
     'Timestamp','User ID','Action','Target','Result'
+  ]);
+  ensureSheet_(ss, CFG.PROBLEM_SHEET, [
+    'Report ID','Date','Time','User ID','User Name','Role','Vehicle Number','Problem','Photo Text','Created At'
   ]);
   return 'Backend initialized. RBAC spreadsheet ID: ' + spreadsheetId;
 }
@@ -101,6 +105,10 @@ function doPost(e) {
         return json_(setUserRole_(req, session.internalUser));
       case 'sync':
         return json_(sync_(req, session.internalUser));
+      case 'save_problem':
+        return json_(saveProblem_(req, session.internalUser));
+      case 'list_problems':
+        return json_(listProblems_(req, session.internalUser));
       default:
         return json_({ ok:false, code:400, error:'Unknown action.' });
     }
@@ -408,6 +416,7 @@ function addUser_(req, sessionUser) {
   const name = String(req.name || '').trim();
   const mobile = normalizeMobile_(req.mobile);
   const role = String(req.role || 'DRIVER').toUpperCase();
+  const requestedPassword = String(req.password || '').trim();
 
   if (!name || !validMobile_(mobile)) {
     return { ok:false, code:400, error:'Enter a name and a valid 10-digit mobile number.' };
@@ -420,7 +429,7 @@ function addUser_(req, sessionUser) {
   }
 
   const salt = randomToken_().slice(0,32);
-  const initialPassword = mobile.slice(-4);
+  const initialPassword = requestedPassword || mobile.slice(-4);
   const userId = uuid_();
   const timestamp = now_();
 
@@ -435,7 +444,7 @@ function addUser_(req, sessionUser) {
   return {
     ok:true, code:200,
     user:{id:userId,name:name,mobile:mobile,role:role,status:'ACTIVE'},
-    initialPasswordRule:'Last 4 digits of mobile number'
+    initialPasswordRule: requestedPassword ? 'Admin-set password' : 'Last 4 digits of mobile number'
   };
 }
 
@@ -474,7 +483,7 @@ function setUserRole_(req, sessionUser) {
 
   const userId = String(req.userId || '');
   const role = String(req.role || '').toUpperCase();
-  if (role !== 'ADMIN' && role !== 'USER') {
+  if (role !== 'ADMIN' && role !== 'DRIVER' && role !== 'MECHANIC' && role !== 'USER') {
     return { ok:false, code:400, error:'Invalid role.' };
   }
 
@@ -493,8 +502,58 @@ function setUserRole_(req, sessionUser) {
 }
 
 function sync_(req, sessionUser) {
-  // USER receives only their records; ADMIN receives all authorized records.
   return listWork_(req, sessionUser);
+}
+
+function setUserPassword_(req, sessionUser) {
+  const gate = requireAdmin_(sessionUser);
+  if (!gate.ok) return gate;
+  const userId = String(req.userId || '');
+  const password = String(req.password || '');
+  if (password.length < 8) return { ok:false, code:400, error:'Password must be at least 8 characters.' };
+  const found = findUserById_(userId);
+  if (!found) return { ok:false, code:404, error:'User not found.' };
+  const salt = randomToken_().slice(0,32);
+  users_().getRange(found.row, 6).setValue(hashPassword_(password, salt));
+  users_().getRange(found.row, 7).setValue(salt);
+  users_().getRange(found.row, 9).setValue(now_());
+  audit_().appendRow([now_(), String(sessionUser.data[0]), 'SET_USER_PASSWORD', userId, 'SUCCESS']);
+  return { ok:true, code:200 };
+}
+
+function saveProblem_(req, sessionUser) {
+  const vehicle = String(req.vehicleNumber || '').trim().toUpperCase();
+  const problem = String(req.problem || '').trim();
+  const photoText = String(req.photoText || '').trim();
+  if (!problem && !photoText) return { ok:false, code:400, error:'Problem details are required.' };
+  const now = new Date();
+  const reportId = uuid_();
+  const date = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const time = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
+  const u = sessionUser.data;
+  db_().getSheetByName(CFG.PROBLEM_SHEET).appendRow([
+    reportId,date,time,String(u[0]),String(u[1]),String(u[3]),vehicle,problem,photoText,now_()
+  ]);
+  audit_().appendRow([now_(), String(u[0]), 'SAVE_PROBLEM', reportId, 'SUCCESS']);
+  return { ok:true, code:200, reportId:reportId };
+}
+
+function listProblems_(req, sessionUser) {
+  const admin = String(sessionUser.data[3]) === 'ADMIN';
+  const sh = db_().getSheetByName(CFG.PROBLEM_SHEET);
+  const values = sh.getDataRange().getValues();
+  const out = [];
+  for (let i=1;i<values.length;i++) {
+    const r=values[i]; if(!r[0]) continue;
+    if(!admin && String(r[3]) !== String(sessionUser.data[0])) continue;
+    out.push({
+      id:String(r[0]),date:String(r[1]),time:String(r[2]),userId:String(r[3]),
+      userName:String(r[4]),role:String(r[5]),vehicleNumber:String(r[6]),
+      problem:String(r[7]),photoText:String(r[8]),createdAt:String(r[9])
+    });
+  }
+  out.reverse();
+  return { ok:true, code:200, records:out };
 }
 
 function setupFirstAdmin() {
