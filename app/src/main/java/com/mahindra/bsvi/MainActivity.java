@@ -320,6 +320,124 @@ public class MainActivity extends Activity {
             return API_URL;
         }
 
+
+        @JavascriptInterface
+        public void secureLogin(String mobile, String password) {
+            new Thread(() -> {
+                int code = 0;
+                String response = "";
+                try {
+                    String currentUrl = API_URL;
+                    String requestMethod = "POST";
+                    byte[] data = ("{\"action\":\"login\",\"username\":"
+                            + JSONObject.quote(mobile == null ? "" : mobile)
+                            + ",\"password\":"
+                            + JSONObject.quote(password == null ? "" : password)
+                            + "}").getBytes(StandardCharsets.UTF_8);
+                    String cookie = null;
+
+                    for (int redirect = 0; redirect < 8; redirect++) {
+                        HttpURLConnection c =
+                                (HttpURLConnection) new URL(currentUrl).openConnection();
+                        c.setRequestMethod(requestMethod);
+                        c.setConnectTimeout(30000);
+                        c.setReadTimeout(60000);
+                        c.setUseCaches(false);
+                        c.setUseCaches(false);
+                        c.setInstanceFollowRedirects(false);
+                        c.setRequestProperty("Connection", "close");
+                        c.setRequestProperty("Accept", "application/json, text/plain, */*");
+                        c.setRequestProperty("User-Agent", "MahindraBSVI-DriverGuideAI/1.0");
+                        c.setRequestProperty("Accept-Encoding", "identity");
+                        c.setRequestProperty("Connection", "close");
+                        if (cookie != null && !cookie.isEmpty()) c.setRequestProperty("Cookie", cookie);
+
+                        if ("POST".equals(requestMethod)) {
+                            c.setDoOutput(true);
+                            c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                            c.setFixedLengthStreamingMode(data.length);
+                            try (OutputStream os = c.getOutputStream()) {
+                                os.write(data);
+                                os.flush();
+                            }
+                        }
+
+                        code = c.getResponseCode();
+                        java.util.Map<String, java.util.List<String>> headers = c.getHeaderFields();
+                        if (headers != null) {
+                            for (java.util.Map.Entry<String, java.util.List<String>> entry : headers.entrySet()) {
+                                if (entry.getKey() != null && "Set-Cookie".equalsIgnoreCase(entry.getKey())
+                                        && entry.getValue() != null) {
+                                    for (String setCookie : entry.getValue()) {
+                                        if (setCookie != null && !setCookie.trim().isEmpty()) {
+                                            cookie = mergeCookie(cookie, extractCookiePair(setCookie));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        String location = c.getHeaderField("X-Redirect-Location");
+                        if (location == null || location.trim().isEmpty()) location = c.getHeaderField("Location");
+
+                        if (code == 412 || code == 301 || code == 302 || code == 303) {
+                            c.disconnect();
+                            if (location == null || location.trim().isEmpty()) {
+                                response = "{\"ok\":false,\"code\":" + code + ",\"error\":\"Backend redirect did not provide a response URL.\"}";
+                                break;
+                            }
+                            currentUrl = new URL(new URL(currentUrl), location).toString();
+                            requestMethod = "GET";
+                            data = new byte[0];
+                            continue;
+                        }
+
+                        if (code == 307 || code == 308) {
+                            c.disconnect();
+                            if (location == null || location.trim().isEmpty()) {
+                                response = "{\"ok\":false,\"code\":" + code + ",\"error\":\"Backend redirect did not provide a response URL.\"}";
+                                break;
+                            }
+                            currentUrl = new URL(new URL(currentUrl), location).toString();
+                            continue;
+                        }
+
+                        java.io.InputStream stream = code >= 400 ? c.getErrorStream() : c.getInputStream();
+                        if (stream == null) stream = new java.io.ByteArrayInputStream(new byte[0]);
+                        BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) sb.append(line);
+                        br.close();
+                        response = sb.toString().trim();
+                        c.disconnect();
+                        break;
+                    }
+
+                    if (response == null || response.isEmpty()) {
+                        response = "{\"ok\":false,\"code\":" + code + ",\"error\":\"Backend returned an empty response.\"}";
+                    }
+
+                    // Some proxies wrap a JSON response in HTML. Extract the JSON object if present.
+                    if (!(response.startsWith("{") && response.endsWith("}"))) {
+                        int start = response.indexOf("{");
+                        int end = response.lastIndexOf("}");
+                        if (start >= 0 && end > start) response = response.substring(start, end + 1);
+                    }
+                } catch (Exception e) {
+                    response = "{\"ok\":false,\"code\":0,\"error\":\"Network error: "
+                            + escapeJson(e.getMessage()) + "\"}";
+                }
+
+                final String result = response;
+                web.post(() -> web.evaluateJavascript(
+                        "window.nativeLoginResult && window.nativeLoginResult("
+                                + JSONObject.quote(result) + ")",
+                        null
+                ));
+            }).start();
+        }
+
         @JavascriptInterface
         public void cloudRequest(
                 String method,
@@ -356,8 +474,8 @@ public class MainActivity extends Activity {
                                 (HttpURLConnection) new URL(currentUrl).openConnection();
 
                         c.setRequestMethod(requestMethod);
-                        c.setConnectTimeout(20000);
-                        c.setReadTimeout(30000);
+                        c.setConnectTimeout(30000);
+                        c.setReadTimeout(60000);
                         c.setInstanceFollowRedirects(false);
 
                         c.setRequestProperty(
