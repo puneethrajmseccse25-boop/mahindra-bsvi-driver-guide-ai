@@ -162,7 +162,7 @@
       '@media(max-width:520px){.bt-card{padding:26px 17px 22px}.bt-features{grid-template-columns:repeat(2,1fr)}.bt-top{padding-top:20px}.bt-slogan{margin-top:16px}}'+
       '</style>'+
       '<header class="bt-top">'+
-        '<img class="bt-logo" src="file:///android_asset/balaji_logo.jpg" alt="BALAJI TRANSPORTS" onerror="this.style.display=&quot;none&quot;">'+
+        '<svg class="bt-logo" viewBox="0 0 1000 150" role="img" aria-label="BALAJI TRANSPORTS"><defs><linearGradient id="btg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b2d72"/><stop offset=".55" stop-color="#132b69"/><stop offset=".56" stop-color="#d71920"/><stop offset="1" stop-color="#b71c1c"/></linearGradient></defs><text x="500" y="108" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="100" font-weight="900" letter-spacing="2" fill="url(#btg)" stroke="#fff" stroke-width="7" paint-order="stroke">BALAJI TRANSPORTS</text></svg>'+
         '<div class="bt-brand">BALAJI TRANSPORTS</div>'+
         '<div class="bt-tag">Driver Assistance • Photo • Voice • Kannada • Hindi</div>'+
         '<div class="bt-slogan">Safe Drives<br>Stronger Tomorrows</div>'+
