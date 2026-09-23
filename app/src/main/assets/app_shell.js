@@ -129,8 +129,63 @@
 
   function renderLogin(message){
     hideOld();document.getElementById('maApp')?.remove();document.getElementById('secureAuth')?.remove();
-    let root=document.getElementById('maLogin');if(root)root.remove();root=document.createElement('div');root.id='maLogin';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#f5f7fa;overflow:auto;padding:24px;box-sizing:border-box;font-family:Arial,sans-serif';
-    root.innerHTML='<div style="min-height:100%;display:flex;align-items:center;justify-content:center"><div class="auth-card" style="width:min(620px,100%);background:#fff;padding:34px 30px;border-radius:24px;box-sizing:border-box"><div style="font-size:72px;text-align:center">🚛</div><h1 style="text-align:center;color:#b71c1c;margin:10px 0 6px;font-size:38px">MAHINDRA BSVI</h1><p style="text-align:center;color:#667085;font-size:20px;margin:0 0 30px">Driver & Mechanic Guide AI • Secure Login</p><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">Mobile Number (Username)</label><input id="maLoginMobile" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" style="width:100%;box-sizing:border-box;padding:18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px;margin-bottom:20px"><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">Password</label><div style="position:relative;margin-bottom:20px"><input id="maLoginPass" name="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" type="password" maxlength="64" style="width:100%;box-sizing:border-box;padding:18px 58px 18px 18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px"><button id="maPassToggle" type="button" aria-label="Show password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:22px;padding:8px">👁️</button></div><button id="maLoginBtn" style="width:100%;padding:20px;border:0;border-radius:14px;background:#b71c1c;color:#fff;font-size:23px;font-weight:900">🔐 LOGIN</button><div id="maLoginErr" style="color:#b71c1c;font-weight:800;font-size:18px;margin-top:16px;min-height:26px">'+esc(message||'')+'</div><div style="color:#667085;font-size:15px;margin-top:16px;line-height:1.4">Mobile number is only the username. Password is a separate protected credential. Driver/Mechanic accounts use the last 4 digits of the mobile only when the Admin has not set a custom password.</div></div></div>';
+    let root=document.getElementById('maLogin');if(root)root.remove();
+    root=document.createElement('div');root.id='maLogin';
+    root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#f7f8fb;overflow:auto;font-family:Arial,sans-serif;color:#10264b';
+    root.innerHTML='<style>'+
+      '#maLogin *{box-sizing:border-box}'+
+      '.bt-top{background:linear-gradient(180deg,#ffe600 0%,#ffd900 72%,#ffffff 100%);padding:26px 22px 44px;text-align:center;position:relative;overflow:hidden}'+
+      '.bt-logo{width:min(760px,96%);height:auto;display:block;margin:0 auto 8px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.18))}'+
+      '.bt-brand{font-weight:800;font-size:clamp(17px,4vw,26px);color:#123a76;letter-spacing:.2px}'+
+      '.bt-tag{font-size:clamp(14px,3.2vw,19px);font-weight:700;color:#17376d;margin-top:8px}'+
+      '.bt-slogan{font-size:clamp(24px,6vw,42px);font-weight:800;font-style:italic;color:#163d7b;margin:22px auto 0;max-width:700px;line-height:1.08}'+
+      '.bt-road{height:72px;margin:20px -22px -44px;background:linear-gradient(160deg,transparent 40%,#d32f2f 41%,#d32f2f 44%,#fff 45%,#fff 48%,#6b7280 49%,#4b5563 100%);opacity:.75}'+
+      '.bt-card{width:min(720px,calc(100% - 28px));margin:-2px auto 0;background:#fff;border-radius:28px;padding:30px 24px 24px;box-shadow:0 12px 38px rgba(16,38,75,.13);position:relative}'+
+      '.bt-title{text-align:center;font-size:clamp(31px,7vw,48px);margin:0 0 6px;color:#102b5c;font-weight:800}'+
+      '.bt-sub{text-align:center;color:#667085;font-size:clamp(16px,4vw,21px);margin:0 0 25px}'+
+      '.bt-label{display:block;font-size:16px;font-weight:800;color:#344054;margin:0 0 8px}'+
+      '.bt-inputwrap{position:relative;margin-bottom:17px}'+
+      '.bt-input{width:100%;height:62px;border:2px solid #d8dee8;border-radius:16px;padding:8px 16px 8px 54px;font-size:21px;color:#10264b;background:#fff;outline:none}'+
+      '.bt-input:focus{border-color:#d32f2f;box-shadow:0 0 0 4px rgba(211,47,47,.1)}'+
+      '.bt-icon{position:absolute;left:17px;top:18px;font-size:23px;color:#667085}'+
+      '.bt-eye{position:absolute;right:10px;top:7px;height:48px;width:48px;border:0;background:transparent;font-size:23px;color:#667085}'+
+      '.bt-login{width:100%;height:64px;border:0;border-radius:16px;background:linear-gradient(90deg,#d91c1c,#b71c1c);color:#fff;font-size:22px;font-weight:800;box-shadow:0 8px 18px rgba(183,28,28,.22)}'+
+      '.bt-login:disabled{opacity:.65}'+
+      '.bt-error{color:#b42318;font-weight:700;font-size:15px;min-height:23px;margin-top:12px;text-align:center}'+
+      '.bt-note{text-align:center;color:#667085;font-size:14px;line-height:1.45;margin-top:14px}'+
+      '.bt-features{width:min(720px,calc(100% - 28px));margin:25px auto 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}'+
+      '.bt-feature{background:#fff;border-radius:18px;padding:15px 8px;text-align:center;box-shadow:0 5px 18px rgba(16,38,75,.08);font-weight:800;font-size:13px;color:#142b54}'+
+      '.bt-feature b{display:flex;width:50px;height:50px;margin:0 auto 9px;border-radius:15px;align-items:center;justify-content:center;font-size:24px}'+
+      '.bt-f1 b{background:#fde2e2;color:#c62828}.bt-f2 b{background:#e1efff;color:#1976d2}.bt-f3 b{background:#e5f6ea;color:#087443}.bt-f4 b{background:#ffeadc;color:#e65100}'+
+      '.bt-footer{background:linear-gradient(180deg,#fff0f0,#ffe6e6);padding:24px 20px 30px;text-align:center;margin-top:15px;color:#b71c1c;font-weight:800}'+
+      '.bt-footer small{display:block;color:#667085;font-weight:500;margin-top:5px}'+
+      '@media(max-width:520px){.bt-card{padding:26px 17px 22px}.bt-features{grid-template-columns:repeat(2,1fr)}.bt-top{padding-top:20px}.bt-slogan{margin-top:16px}}'+
+      '</style>'+
+      '<header class="bt-top">'+
+        '<img class="bt-logo" src="file:///android_asset/balaji_logo.jpg" alt="BALAJI TRANSPORTS" onerror="this.style.display=&quot;none&quot;">'+
+        '<div class="bt-brand">BALAJI TRANSPORTS</div>'+
+        '<div class="bt-tag">Driver Assistance • Photo • Voice • Kannada • Hindi</div>'+
+        '<div class="bt-slogan">Safe Drives<br>Stronger Tomorrows</div>'+
+        '<div class="bt-road"></div>'+
+      '</header>'+
+      '<section class="bt-card">'+
+        '<h1 class="bt-title">Welcome Back</h1>'+
+        '<p class="bt-sub">Login to access your dashboard</p>'+
+        '<label class="bt-label">Mobile Number</label>'+
+        '<div class="bt-inputwrap"><span class="bt-icon">📱</span><input id="maLoginMobile" class="bt-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number"></div>'+
+        '<label class="bt-label">Password</label>'+
+        '<div class="bt-inputwrap"><span class="bt-icon">🔒</span><input id="maLoginPass" class="bt-input" name="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" type="password" maxlength="64" placeholder="Enter password"><button id="maPassToggle" class="bt-eye" type="button" aria-label="Show password">👁️</button></div>'+
+        '<button id="maLoginBtn" class="bt-login" type="button">↪ &nbsp; Login</button>'+
+        '<div id="maLoginErr" class="bt-error">'+esc(message||'')+'</div>'+
+        '<div class="bt-note">Mobile number is your username. Your password remains separate and protected.</div>'+
+      '</section>'+
+      '<section class="bt-features">'+
+        '<div class="bt-feature bt-f1"><b>📷</b>Photo<br>Support</div>'+
+        '<div class="bt-feature bt-f2"><b>🎙️</b>Voice<br>Guidance</div>'+
+        '<div class="bt-feature bt-f3"><b>Aಅ</b>Kannada<br>&amp; Hindi</div>'+
+        '<div class="bt-feature bt-f4"><b>🛡️</b>Reliable<br>Support</div>'+
+      '</section>'+
+      '<footer class="bt-footer">🚛 BALAJI TRANSPORTS<small>People Move • Businesses Grow • Together</small><small>Version 1.0.0</small></footer>';
     document.body.appendChild(root);
     const passInput=root.querySelector('#maLoginPass'), passToggle=root.querySelector('#maPassToggle');
     passToggle.onclick=()=>{const show=passInput.type==='password';passInput.type=show?'text':'password';passToggle.textContent=show?'🙈':'👁️';passToggle.setAttribute('aria-label',show?'Hide password':'Show password');};
@@ -146,7 +201,7 @@
         if(AndroidBridge?.cloudRequest) AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify({action:'login',username:mobile,password:pass}));
         else throw new Error('Android network bridge unavailable');
       }catch(e){finish({ok:false,error:e.message||String(e)});}
-      setTimeout(()=>{if(!finished){finished=true;window.appHttpResult=previousHttp;err.textContent='Login request timed out. Please try again.';btn.disabled=false;btn.textContent='🔐 LOGIN';}},70000);
+      setTimeout(()=>{if(!finished){finished=true;window.appHttpResult=previousHttp;err.textContent='Login request timed out. Please try again.';btn.disabled=false;btn.textContent='↪  Login';}},70000);
     };
   }
   window.showLogin=renderLogin;
