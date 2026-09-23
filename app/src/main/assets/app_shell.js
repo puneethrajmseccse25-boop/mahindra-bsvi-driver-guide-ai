@@ -26,7 +26,9 @@
   .auth-card{max-width:420px!important;border-radius:22px!important;box-shadow:0 8px 30px #0002!important}
   @media(max-width:420px){.ma-grid{grid-template-columns:1fr}.ma-card{min-height:88px}.ma-main{padding-left:13px;padding-right:13px}}
   </style>`;
-  document.head.insertAdjacentHTML('beforeend',css);\n  /* MA-ROBUST-LOGIN-NAV-v1 */\n  const robustCss='<style id="ma-robust-login-nav">.ma-backbar{padding-top:env(safe-area-inset-top,0px);height:calc(48px + env(safe-area-inset-top,0px));}.ma-main{padding-top:calc(82px + env(safe-area-inset-top,0px));}.page-nav{position:sticky!important;top:0!important;left:auto!important;right:auto!important;width:100%!important;box-sizing:border-box!important;margin:0 0 14px!important;padding:8px 0!important;z-index:50!important;background:#fff!important}.page-nav button{min-height:52px!important;width:calc(50% - 6px)!important}.page-nav .nav-back{order:1!important}.page-nav .nav-home{order:2!important}#screen{padding-top:0!important}.auth-card input{font-family:Arial,sans-serif}</style>';document.head.insertAdjacentHTML('beforeend',robustCss);
+  document.head.insertAdjacentHTML('beforeend',css);
+  /* MA-ROBUST-LOGIN-NAV-v1 */
+  const robustCss='<style id="ma-robust-login-nav">.ma-backbar{padding-top:env(safe-area-inset-top,0px);height:calc(48px + env(safe-area-inset-top,0px));}.ma-main{padding-top:calc(82px + env(safe-area-inset-top,0px));}.page-nav{position:sticky!important;top:0!important;left:auto!important;right:auto!important;width:100%!important;box-sizing:border-box!important;margin:0 0 14px!important;padding:8px 0!important;z-index:50!important;background:#fff!important}.page-nav button{min-height:52px!important;width:calc(50% - 6px)!important}.page-nav .nav-back{order:1!important}.page-nav .nav-home{order:2!important}#screen{padding-top:0!important}.auth-card input{font-family:Arial,sans-serif}</style>';document.head.insertAdjacentHTML('beforeend',robustCss);
 
   function logout(){localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);sessionStorage.removeItem('ma_fast_boot_v1');location.reload();}
   window.maLogout=logout;
