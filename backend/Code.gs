@@ -103,6 +103,8 @@ function doPost(e) {
         return json_(setUserStatus_(req, session.internalUser));
       case 'set_user_role':
         return json_(setUserRole_(req, session.internalUser));
+      case 'set_user_password':
+        return json_(setUserPassword_(req, session.internalUser));
       case 'sync':
         return json_(sync_(req, session.internalUser));
       case 'save_problem':
