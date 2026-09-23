@@ -26,7 +26,7 @@
   .auth-card{max-width:420px!important;border-radius:22px!important;box-shadow:0 8px 30px #0002!important}
   @media(max-width:420px){.ma-grid{grid-template-columns:1fr}.ma-card{min-height:88px}.ma-main{padding-left:13px;padding-right:13px}}
   </style>`;
-  document.head.insertAdjacentHTML('beforeend',css);
+  document.head.insertAdjacentHTML('beforeend',css);\n  /* MA-ROBUST-LOGIN-NAV-v1 */\n  const robustCss='<style id="ma-robust-login-nav">.ma-backbar{padding-top:env(safe-area-inset-top,0px);height:calc(48px + env(safe-area-inset-top,0px));}.ma-main{padding-top:calc(82px + env(safe-area-inset-top,0px));}.page-nav{position:sticky!important;top:0!important;left:auto!important;right:auto!important;width:100%!important;box-sizing:border-box!important;margin:0 0 14px!important;padding:8px 0!important;z-index:50!important;background:#fff!important}.page-nav button{min-height:52px!important;width:calc(50% - 6px)!important}.page-nav .nav-back{order:1!important}.page-nav .nav-home{order:2!important}#screen{padding-top:0!important}.auth-card input{font-family:Arial,sans-serif}</style>';document.head.insertAdjacentHTML('beforeend',robustCss);
 
   function logout(){localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);sessionStorage.removeItem('ma_fast_boot_v1');location.reload();}
   window.maLogout=logout;
@@ -74,31 +74,77 @@
     cards.forEach((c,i)=>{const el=document.createElement('button');el.className='ma-card'+(i===0?' ma-primary':'');el.innerHTML='<b>'+c[0]+'</b><span>'+esc(c[1])+'</span><small>'+esc(c[2])+'</small>';el.onclick=c[3];box.appendChild(el);const m=document.createElement('button');m.className='ma-menu-btn';m.textContent=c[0]+'  '+c[1];m.onclick=c[3];mi.appendChild(m);});
   }
 
+  function normalizeLoginResponse(raw){
+    let candidates=[];
+    const push=v=>{if(v&&typeof v==='object')candidates.push(v)};
+    let x=raw;
+    if(typeof x==='string'){try{x=JSON.parse(x)}catch(e){}}
+    push(x);
+    if(x&&typeof x==='object'){
+      let b=x.body;
+      if(typeof b==='string'){try{b=JSON.parse(b)}catch(e){}}
+      push(b);
+      if(b&&typeof b==='object'){
+        let bb=b.body;
+        if(typeof bb==='string'){try{bb=JSON.parse(bb)}catch(e){}}
+        push(bb);
+      }
+      let result=x.result;
+      if(typeof result==='string'){try{result=JSON.parse(result)}catch(e){}}
+      push(result);
+    }
+    for(const v of candidates){
+      if(v && (v.ok===true || v.token || v.user || v.error)) return v;
+    }
+    return candidates[0]||{ok:false,error:'Backend response could not be read.'};
+  }
+
+  function finishLoginUser(res, root, btn, err){
+    if(!res || !res.ok){err.textContent=(res&&res.error)||'Mobile number or password is incorrect.';btn.disabled=false;btn.textContent='🔐 LOGIN';return;}
+    const token=String(res.token||'');
+    const suppliedUser=(res.user&&typeof res.user==='object')?res.user:null;
+    if(suppliedUser && suppliedUser.role){
+      localStorage.setItem(TOKEN,token);localStorage.setItem(USER,JSON.stringify(suppliedUser));localStorage.setItem(MODE,roleLabel(suppliedUser.role).toLowerCase());root.remove();dashboard();return;
+    }
+    if(!token){err.textContent='Login response did not contain a secure session. Please try again.';btn.disabled=false;btn.textContent='🔐 LOGIN';return;}
+    // Some Apps Script/proxy responses can wrap the login body and omit user at the first layer.
+    // Resolve the authenticated account through the protected /me endpoint before showing any dashboard.
+    const previous=window.appHttpResult;
+    let done=false;
+    window.appHttpResult=function(raw){
+      if(done)return;done=true;window.appHttpResult=previous;
+      const me=normalizeLoginResponse(raw);
+      if(me&&me.ok&&me.user&&me.user.role){
+        localStorage.setItem(TOKEN,token);localStorage.setItem(USER,JSON.stringify(me.user));localStorage.setItem(MODE,roleLabel(me.user.role).toLowerCase());root.remove();dashboard();
+      }else{
+        localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);
+        err.textContent=(me&&me.error)||'Login succeeded but the account role could not be read.';btn.disabled=false;btn.textContent='🔐 LOGIN';
+      }
+    };
+    try{AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify({action:'me',token:token}));}
+    catch(e){window.appHttpResult=previous;err.textContent=e.message||String(e);btn.disabled=false;btn.textContent='🔐 LOGIN';}
+  }
+
   function renderLogin(message){
     hideOld();document.getElementById('maApp')?.remove();document.getElementById('secureAuth')?.remove();
     let root=document.getElementById('maLogin');if(root)root.remove();root=document.createElement('div');root.id='maLogin';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#f5f7fa;overflow:auto;padding:24px;box-sizing:border-box;font-family:Arial,sans-serif';
-    root.innerHTML='<div style="min-height:100%;display:flex;align-items:center;justify-content:center"><div class="auth-card" style="width:min(620px,100%);background:#fff;padding:34px 30px;border-radius:24px;box-sizing:border-box"><div style="font-size:72px;text-align:center">🚛</div><h1 style="text-align:center;color:#b71c1c;margin:10px 0 6px;font-size:38px">MAHINDRA BSVI</h1><p style="text-align:center;color:#667085;font-size:20px;margin:0 0 30px">Driver & Mechanic Guide AI • Secure Login</p><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">10-Digit Mobile Number</label><input id="maLoginMobile" inputmode="numeric" maxlength="10" style="width:100%;box-sizing:border-box;padding:18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px;margin-bottom:20px"><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">Password</label><input id="maLoginPass" type="password" maxlength="64" style="width:100%;box-sizing:border-box;padding:18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px;margin-bottom:20px"><button id="maLoginBtn" style="width:100%;padding:20px;border:0;border-radius:14px;background:#b71c1c;color:#fff;font-size:23px;font-weight:900">🔐 LOGIN</button><div id="maLoginErr" style="color:#b71c1c;font-weight:800;font-size:18px;margin-top:16px;min-height:26px">'+esc(message||'')+'</div><div style="color:#667085;font-size:15px;margin-top:16px;line-height:1.4">Driver/Mechanic accounts use the last 4 digits of the mobile as the initial password unless the Admin sets a custom password.</div></div></div>';
+    root.innerHTML='<div style="min-height:100%;display:flex;align-items:center;justify-content:center"><div class="auth-card" style="width:min(620px,100%);background:#fff;padding:34px 30px;border-radius:24px;box-sizing:border-box"><div style="font-size:72px;text-align:center">🚛</div><h1 style="text-align:center;color:#b71c1c;margin:10px 0 6px;font-size:38px">MAHINDRA BSVI</h1><p style="text-align:center;color:#667085;font-size:20px;margin:0 0 30px">Driver & Mechanic Guide AI • Secure Login</p><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">Mobile Number (Username)</label><input id="maLoginMobile" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" style="width:100%;box-sizing:border-box;padding:18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px;margin-bottom:20px"><label style="display:block;font-weight:900;font-size:20px;margin-bottom:8px">Password</label><div style="position:relative;margin-bottom:20px"><input id="maLoginPass" name="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" type="password" maxlength="64" style="width:100%;box-sizing:border-box;padding:18px 58px 18px 18px;border:2px solid #d0d5dd;border-radius:14px;font-size:23px"><button id="maPassToggle" type="button" aria-label="Show password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:22px;padding:8px">👁️</button></div><button id="maLoginBtn" style="width:100%;padding:20px;border:0;border-radius:14px;background:#b71c1c;color:#fff;font-size:23px;font-weight:900">🔐 LOGIN</button><div id="maLoginErr" style="color:#b71c1c;font-weight:800;font-size:18px;margin-top:16px;min-height:26px">'+esc(message||'')+'</div><div style="color:#667085;font-size:15px;margin-top:16px;line-height:1.4">Mobile number is only the username. Password is a separate protected credential. Driver/Mechanic accounts use the last 4 digits of the mobile only when the Admin has not set a custom password.</div></div></div>';
     document.body.appendChild(root);
+    const passInput=root.querySelector('#maLoginPass'), passToggle=root.querySelector('#maPassToggle');
+    passToggle.onclick=()=>{const show=passInput.type==='password';passInput.type=show?'text':'password';passToggle.textContent=show?'🙈':'👁️';passToggle.setAttribute('aria-label',show?'Hide password':'Show password');};
     root.querySelector('#maLoginBtn').onclick=function(){
-      const mobile=root.querySelector('#maLoginMobile').value.replace(/\D/g,''),pass=root.querySelector('#maLoginPass').value,err=root.querySelector('#maLoginErr'),btn=root.querySelector('#maLoginBtn');
+      const mobile=root.querySelector('#maLoginMobile').value.replace(/\D/g,''),pass=passInput.value,err=root.querySelector('#maLoginErr'),btn=root.querySelector('#maLoginBtn');
       if(!/^\d{10}$/.test(mobile)||!pass){err.textContent='Enter the 10-digit mobile number and password.';return;}
       btn.disabled=true;btn.textContent='⏳ LOGGING IN...';err.textContent='';
       const previousHttp=window.appHttpResult;
       let finished=false;
-      const finishLogin=(res)=>{if(finished)return;finished=true;window.appHttpResult=previousHttp;if(res&&res.ok){localStorage.setItem(TOKEN,String(res.token||''));localStorage.setItem(USER,JSON.stringify(res.user||{}));localStorage.setItem(MODE,roleLabel(res.user?.role).toLowerCase());root.remove();dashboard();}else{err.textContent=(res&&res.error)||'Mobile number or password is incorrect.';btn.disabled=false;btn.textContent='🔐 LOGIN';}};
-      window.appHttpResult=function(raw){
-        let out=raw,res=null;
-        try{out=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){}
-        try{res=typeof out.body==='string'?JSON.parse(out.body):(out.body||out);}catch(e){
-          try{res=typeof raw==='string'?JSON.parse(raw):raw;}catch(e2){res={ok:false,error:'Backend returned non-JSON response (HTTP '+String(out?.code??200)+').'};}
-        }
-        finishLogin(res);
-      };
+      const finish=(res)=>{if(finished)return;finished=true;window.appHttpResult=previousHttp;finishLoginUser(res,root,btn,err);};
+      window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
       try{
         if(AndroidBridge?.cloudRequest) AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify({action:'login',username:mobile,password:pass}));
         else throw new Error('Android network bridge unavailable');
-      }catch(e){finishLogin({ok:false,error:e.message||String(e)});}
-      setTimeout(()=>{if(!finished)finishLogin({ok:false,error:'Login request timed out. Please try again.'});},70000);
+      }catch(e){finish({ok:false,error:e.message||String(e)});}
+      setTimeout(()=>{if(!finished){finished=true;window.appHttpResult=previousHttp;err.textContent='Login request timed out. Please try again.';btn.disabled=false;btn.textContent='🔐 LOGIN';}},70000);
     };
   }
   window.showLogin=renderLogin;
