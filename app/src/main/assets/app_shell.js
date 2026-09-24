@@ -77,26 +77,32 @@
   }
 
   function normalizeLoginResponse(raw){
-    let candidates=[];
-    const push=v=>{if(v&&typeof v==='object')candidates.push(v)};
-    let x=raw;
-    if(typeof x==='string'){try{x=JSON.parse(x)}catch(e){}}
-    push(x);
-    if(x&&typeof x==='object'){
-      let b=x.body;
-      if(typeof b==='string'){try{b=JSON.parse(b)}catch(e){}}
-      push(b);
-      if(b&&typeof b==='object'){
-        let bb=b.body;
-        if(typeof bb==='string'){try{bb=JSON.parse(bb)}catch(e){}}
-        push(bb);
+    const candidates=[];
+    const seen=new Set();
+    const add=(v,depth)=>{
+      if(depth>6||v==null)return;
+      if(typeof v==='string'){
+        const t=v.trim();
+        if(!t)return;
+        try{add(JSON.parse(t),depth+1)}catch(e){}
+        return;
       }
-      let result=x.result;
-      if(typeof result==='string'){try{result=JSON.parse(result)}catch(e){}}
-      push(result);
+      if(typeof v!=='object'||seen.has(v))return;
+      seen.add(v);candidates.push(v);
+      ['body','result','data','response'].forEach(k=>{if(v[k]!=null)add(v[k],depth+1)});
+    };
+    add(raw,0);
+    for(const v of candidates){
+      if(v && v.token && v.user && typeof v.user==='object') return v;
     }
     for(const v of candidates){
-      if(v && (v.ok===true || v.token || v.user || v.error)) return v;
+      if(v && v.ok===true && v.user && typeof v.user==='object') return v;
+    }
+    for(const v of candidates){
+      if(v && v.ok===false) return v;
+    }
+    for(const v of candidates){
+      if(v && v.error && !v.token) return v;
     }
     return candidates[0]||{ok:false,error:'Backend response could not be read.'};
   }
