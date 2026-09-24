@@ -45,7 +45,7 @@ import java.util.Locale;
 public class MainActivity extends Activity {
 
     private static final String API_URL =
-            "https://script.google.com/macros/s/AKfycbyaf4CxW_aGMwJIDoK4Moo6rY0S-YFv2cknA1mqTb7czweU_OPgYJTSX_a0igKNSlpE/exec";
+            "https://script.google.com/macros/s/AKfycbzZsW6eHeLy8brP9rCE-pVvK3yJyj9ML3zGoHwiGpHysFL8LwZ660Llvj2l8B1xiA4/exec";
 
     private static final int REQ_AUDIO = 3001;
     private static final int REQ_CAMERA = 3002;
