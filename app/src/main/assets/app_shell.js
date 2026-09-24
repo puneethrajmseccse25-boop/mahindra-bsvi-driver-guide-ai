@@ -198,11 +198,7 @@
       const finish=(res)=>{if(finished)return;finished=true;window.appHttpResult=previousHttp;finishLoginUser(res,root,btn,err);};
       window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
       try{
-        if(AndroidBridge?.secureLogin){
-          AndroidBridge.secureLogin(mobile,pass);
-        }else{
-          throw new Error('Android secure login bridge unavailable');
-        }
+        AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify({action:'login',mobile:mobile,password:pass}));
       }catch(e){finish({ok:false,error:e.message||String(e)});}
       setTimeout(()=>{if(!finished){finished=true;window.appHttpResult=previousHttp;err.textContent='Login request timed out. Please try again.';btn.disabled=false;btn.textContent='↪  Login';}},70000);
     };
