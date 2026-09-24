@@ -434,7 +434,7 @@ public class MainActivity extends Activity {
 
                 final String result = response;
                 web.post(() -> web.evaluateJavascript(
-                        "window.nativeLoginResult && window.nativeLoginResult("
+                        "window.appHttpResult && window.appHttpResult("
                                 + JSONObject.quote(result) + ")",
                         null
                 ));
