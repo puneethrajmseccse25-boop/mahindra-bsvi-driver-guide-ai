@@ -35,13 +35,28 @@
   function closeDrawer(){document.getElementById('maDrawer')?.classList.remove('open')}
   function menu(){document.getElementById('maDrawer')?.classList.add('open')}
   function runAction(fn){closeDrawer();setTimeout(fn,40)}
-  function oldDriverCard(label){
-    hideOld();const home=document.getElementById('home');
-    if(!home||typeof window.renderHome!=='function')return;
-    window.renderHome();const cards=[...home.querySelectorAll('.card')];
-    const card=cards.find(c=>(c.innerText||'').toLowerCase().includes(label.toLowerCase()));
-    if(card){card.click();return} if(label==='vehicle'&&oldProblem)oldProblem();
+  function openRealVideo(label){
+    const key=String(label||'').toLowerCase();
+    const title=key==='warning'?'WARNING LIGHTS VIDEO':key==='dpf'?'DPF REGENERATION VIDEO':key==='daily'?'DAILY DRIVER CHECK VIDEO':key==='adblue'?'ADBLUE / DEF VIDEO':'DRIVER SAFETY VIDEO';
+    // Never embed YouTube inside the WebView: that is what caused the Error 153 page.
+    // Open a real YouTube destination externally instead.
+    const urls={
+      dpf:'https://www.youtube.com/watch?v=pXiapftMySk',
+      warning:'https://www.youtube.com/@mahindratrucksbuses/videos',
+      daily:'https://www.youtube.com/@mahindratrucksbuses/videos',
+      adblue:'https://www.youtube.com/@mahindratrucksbuses/videos',
+      safety:'https://www.youtube.com/@mahindratrucksbuses/videos'
+    };
+    const url=urls[key]||urls.daily;
+    page(title,'<section class="ma-hero"><div class="ma-brand">▶ REAL YOUTUBE VIDEO</div><div class="ma-sub">YouTube opens directly. No embedded player and no Error 153 screen.</div><button class="ma-card ma-primary" style="width:100%;margin-top:18px;min-height:90px;font-size:20px" onclick="openRealYoutube(\''+esc(url).replace(/'/g,'&#39;')+'\')">▶ OPEN VIDEO ON YOUTUBE</button><div class="status-note" style="margin-top:12px">After returning from YouTube, this app page remains available with Back and Home.</div></section>');
   }
+  function openRealYoutube(url){
+    try{
+      if(window.AndroidBridge&&AndroidBridge.openExternalUrl){AndroidBridge.openExternalUrl(url);return;}
+      window.open(url,'_blank');
+    }catch(e){location.href=url;}
+  }
+  function oldDriverCard(label){openRealVideo(label);}
 
   function apiRequest(action,payload,done){
     const req=Object.assign({action:action,token:localStorage.getItem(TOKEN)||''},payload||{});
@@ -89,8 +104,19 @@
       ['body','result','data','response'].forEach(k=>{if(v[k]!=null)add(v[k],depth+1)});
     };
     add(raw,0);
+    // Prefer the actual nested application payload over the Apps Script/proxy wrapper.
+    // Login responses contain token+user; list endpoints contain users/records.
     for(const v of candidates){
       if(v && v.token && v.user && typeof v.user==='object') return v;
+    }
+    for(const v of candidates){
+      if(v && Array.isArray(v.users)) return v;
+    }
+    for(const v of candidates){
+      if(v && Array.isArray(v.records)) return v;
+    }
+    for(const v of candidates){
+      if(v && (Object.prototype.hasOwnProperty.call(v,'recordId') || Object.prototype.hasOwnProperty.call(v,'reportId'))) return v;
     }
     for(const v of candidates){
       if(v && v.ok===true && v.user && typeof v.user==='object') return v;
@@ -100,6 +126,9 @@
     }
     for(const v of candidates){
       if(v && v.error && !v.token) return v;
+    }
+    for(const v of candidates){
+      if(v && v.ok===true && !v.body && !v.result && !v.data && !v.response) return v;
     }
     return candidates[0]||{ok:false,error:'Backend response could not be read.'};
   }
@@ -249,6 +278,8 @@
   };
 
   window.finalHome=dashboard;window.uxHome=dashboard;
+  window.openRealYoutube=openRealYoutube;
+  window.openRealVideo=openRealVideo;
   window.secureAdmin=function(){dashboard()};
   window.secureMechanic=function(){dashboard()};
   window.routeAfterLogin=function(){dashboard()};
