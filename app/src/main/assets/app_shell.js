@@ -213,7 +213,7 @@
     root.innerHTML='<style>'+
       '#maLogin *{box-sizing:border-box}'+
       '.bt-top{background:linear-gradient(180deg,#fff8c9 0%,#ffe600 58%,#f7f9fc 100%);padding:24px 18px 30px;text-align:center;position:relative;overflow:hidden}'+
-      '.bt-logo{width:168px;height:168px;object-fit:cover;display:block;margin:0 auto 12px;border-radius:28px;box-shadow:0 10px 28px rgba(16,38,75,.20);background:#fff}'+
+      '.bt-logo{width:170px;height:170px;object-fit:contain;object-position:center;display:block;margin:0 auto 12px;border-radius:28px;box-shadow:0 10px 28px rgba(16,38,75,.18);background:#fff}'+
       '.bt-brand{font-weight:900;font-size:clamp(18px,4.5vw,27px);color:#123a76;letter-spacing:.2px}'+
       '.bt-tag{font-size:clamp(13px,3.1vw,17px);font-weight:700;color:#3f5270;margin-top:7px}'+
       '.bt-slogan{font-size:clamp(20px,5vw,32px);font-weight:900;color:#123a76;margin:16px auto 0;max-width:700px;line-height:1.08}'+
@@ -237,7 +237,7 @@
       '.bt-f1 b{background:#fde2e2;color:#c62828}.bt-f2 b{background:#e1efff;color:#1976d2}.bt-f3 b{background:#e5f6ea;color:#087443}.bt-f4 b{background:#ffeadc;color:#e65100}'+
       '.bt-footer{display:none}'+
       '.bt-footer small{display:block;color:#667085;font-weight:500;margin-top:5px}'+
-      '@media(max-width:520px){.bt-logo{width:148px;height:148px;border-radius:24px}.bt-card{padding:23px 17px 21px}.bt-top{padding-top:16px}.bt-slogan{margin-top:12px}}'+
+      '@media(max-width:520px){.bt-logo{width:158px;height:158px;border-radius:24px}.bt-card{padding:23px 17px 21px}.bt-top{padding-top:16px}.bt-slogan{margin-top:12px}}'+
       '</style>'+
       '<header class="bt-top">'+
         '<img class="bt-logo" src="file:///android_asset/driver_mech_logo.webp" alt="Driver/Mech AI">'+
@@ -372,6 +372,8 @@ safety:{kn:['ಚಾಲನೆ ಮಾಡುವಾಗ ಮೊಬೈಲ್ ಬಳಸ�
       hi:type==='dpf'?'⚠️ दिए गए Mahindra BSVI/BS6 तरीके का पालन करें। Regeneration के दौरान Exhaust / ATS parts बहुत गर्म होते हैं।':'📚 नीचे दिए गए सभी items दिए गए Mahindra driver-training guide पर आधारित हैं।'
     };
     page(titles[type],'<section class="ma-hero"><div class="ma-brand">'+esc(titles[type])+'</div><div class="ma-sub">'+esc(intros[lang])+'</div></section><section class="ma-guide-list">'+html+'</section>');
+    // No READ STEPS control anywhere in the driver guide UI.
+    document.querySelectorAll('#maApp button').forEach(b=>{if(/^\\s*[📡🔊🎙️]*\\s*READ STEPS\\s*$/i.test(String(b.textContent||'')))b.remove();});
   }
   function readDriverGuide(type){const root=document.querySelector('#maApp .ma-main');if(!root)return;const text=[...root.querySelectorAll('.ma-card')].map(x=>x.innerText).join('. ');if(window.AndroidBridge?.speakText)AndroidBridge.speakText(text,getLang()==='kn'?'kn-IN':getLang()==='hi'?'hi-IN':'en-IN');}
   function adminProblems(){page('PROBLEM REPORTS','<section class="ma-hero"><div class="ma-brand">📝 Driver Problem Reports</div><div id="problemList">Loading…</div></section>');apiRequest('list_problems',{},r=>{const box=document.getElementById('problemList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load reports.');return;}if(!(r.records||[]).length){box.innerHTML='<div class="status-note">No reports yet.</div>';return;}box.innerHTML='';r.records.forEach(x=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0';d.innerHTML='<b>'+esc(x.date)+' '+esc(x.time)+' • '+esc(x.vehicleNumber||'No vehicle')+'</b><div>'+esc(x.userName)+' • '+esc(roleLabel(x.role))+'</div><div style="margin-top:7px;white-space:pre-wrap">'+esc(x.problem||x.photoText)+'</div>';box.appendChild(d);});});}
@@ -459,6 +461,8 @@ safety:{kn:['ಚಾಲನೆ ಮಾಡುವಾಗ ಮೊಬೈಲ್ ಬಳಸ�
   window.nativeCameraResult=function(ok){const st=document.getElementById('driverPhotoStatus')||document.getElementById('photoStatus');if(st)st.textContent=ok?'✅ Photo captured. Now speak or type the problem.':'❌ Camera was not completed. Tap Take Photo again.'};
 
   // Inline handlers inside generated HTML need explicit window exports because this file uses an IIFE.
+  /* FINAL-CLEAN-UI-v1: keep the login logo fully visible and never show READ STEPS */
+  const cleanUiStyle=document.createElement('style');cleanUiStyle.textContent='.bt-logo{object-fit:contain!important}.ma-guide-read,.read-steps{display:none!important}';document.head.appendChild(cleanUiStyle);
   Object.assign(window,{
     addManagedUser:addManagedUser,
     changeManagedRole:changeManagedRole,
