@@ -71,15 +71,38 @@
 
   function apiRequest(action,payload,done){
     const req=Object.assign({action:action,token:localStorage.getItem(TOKEN)||''},payload||{});
-    const prev=window.appHttpResult;
-    let finished=false;
-    const finish=(res)=>{if(finished)return;finished=true;window.appHttpResult=prev;if(done)done(res||{ok:false,error:'Empty backend response.'});};
-    window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
-    try{
-      if(!window.AndroidBridge||!AndroidBridge.cloudRequest){finish({ok:false,error:'Android network bridge is unavailable.'});return;}
-      AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify(req));
-    }catch(e){finish({ok:false,error:String(e.message||e)});}
-    setTimeout(()=>finish({ok:false,error:'Request is taking longer than expected. Please keep this screen open and try again if it does not finish.'}),125000);
+    const retryable=new Set(['list_work','list_users','list_problems','list_reports']);
+    let attempt=0, settled=false;
+    const run=()=>{
+      if(settled)return;
+      attempt++;
+      const prev=window.appHttpResult;
+      let finished=false;
+      const finish=(res)=>{
+        if(finished||settled)return;
+        finished=true;window.appHttpResult=prev;
+        if(res&&res.ok){settled=true;if(done)done(res);return;}
+        if(retryable.has(action)&&attempt<3){
+          setTimeout(run,700);
+          return;
+        }
+        settled=true;
+        if(done)done(res||{ok:false,error:'Empty backend response.'});
+      };
+      window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
+      try{
+        if(!window.AndroidBridge||!AndroidBridge.cloudRequest){finish({ok:false,error:'Android network bridge is unavailable.'});return;}
+        AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify(req));
+      }catch(e){finish({ok:false,error:String(e.message||e)});return;}
+      setTimeout(()=>{
+        if(finished||settled)return;
+        finished=true;window.appHttpResult=prev;
+        if(retryable.has(action)&&attempt<3){setTimeout(run,300);return;}
+        settled=true;
+        if(done)done({ok:false,error:'Backend request timed out. Please try again.'});
+      },45000);
+    };
+    run();
   }
 
   function roleLabel(r){r=String(r||'').toUpperCase();return r==='USER'?'DRIVER':r;}
@@ -89,7 +112,7 @@
     hideOld();document.getElementById('secureAuth')?.remove();document.getElementById('maLogin')?.remove();
     let root=document.getElementById('maApp');if(root)root.remove();root=document.createElement('div');root.id='maApp';
     const u=getUser()||{},r=roleLabel(u.role),admin=r==='ADMIN',mech=r==='MECHANIC';
-    root.innerHTML='<div class="ma-bar"><button class="ma-icon" onclick="maOpenMenu()">☰</button><div class="ma-title">MAHINDRA BSVI<small>'+esc(roleName(r))+' • '+esc(u.name||'')+'</small></div><button class="ma-icon" onclick="maLogout()">⎋</button></div><main class="ma-main"><section class="ma-hero"><div class="ma-brand">Welcome, '+esc(u.name||'User')+'</div><div class="ma-sub">Secure role-based dashboard</div><div class="ma-role">🔐 '+esc(r)+' • '+esc(roleName(r))+'</div></section><div class="ma-section">'+(admin?'ADMINISTRATION':mech?'MECHANIC WORK':'DRIVER GUIDE')+'</div><section class="ma-grid" id="maCards"></section></main><div id="maDrawer" class="ma-drawer" onclick="if(event.target===this)maCloseMenu()"><aside class="ma-sheet"><div class="ma-sheet-head"><strong>MENU<br><small style="color:#667085">'+esc(r)+' • '+esc(u.name||'')+'</small></strong><button class="ma-icon" style="background:#17202a" onclick="maCloseMenu()">×</button></div><button class="ma-menu-btn" onclick="maDashboard()">⌂ '+L().dashboard+'</button><div id="maMenuItems"></div><div class="ma-section" style="margin-top:16px">🌐 '+L().language+'</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px"><button class="ma-menu-btn" onclick="maSetLanguage(&quot;en&quot;)">English</button><button class="ma-menu-btn" onclick="maSetLanguage(&quot;kn&quot;)">ಕನ್ನಡ</button><button class="ma-menu-btn" onclick="maSetLanguage(&quot;hi&quot;)">हिन्दी</button></div><button class="ma-menu-btn" onclick="maOpenHelp()">🧭 '+L().help+'</button><button class="ma-menu-btn danger" onclick="maLogout()">⎋ '+L().logout+'</button></aside></div>';
+    root.innerHTML='<div class="ma-bar"><button class="ma-icon" onclick="maOpenMenu()">☰</button><div class="ma-title">DRIVERS/MECH AI<small>'+esc(roleName(r))+' • '+esc(u.name||'')+'</small></div><button class="ma-icon" onclick="maLogout()">⎋</button></div><main class="ma-main"><section class="ma-hero"><div class="ma-brand">Welcome, '+esc(u.name||'User')+'</div><div class="ma-sub">Secure role-based dashboard</div><div class="ma-role">🔐 '+esc(r)+' • '+esc(roleName(r))+'</div></section><div class="ma-section">'+(admin?'ADMINISTRATION':mech?'MECHANIC WORK':'DRIVER GUIDE')+'</div><section class="ma-grid" id="maCards"></section></main><div id="maDrawer" class="ma-drawer" onclick="if(event.target===this)maCloseMenu()"><aside class="ma-sheet"><div class="ma-sheet-head"><strong>MENU<br><small style="color:#667085">'+esc(r)+' • '+esc(u.name||'')+'</small></strong><button class="ma-icon" style="background:#17202a" onclick="maCloseMenu()">×</button></div><button class="ma-menu-btn" onclick="maDashboard()">⌂ '+L().dashboard+'</button><div id="maMenuItems"></div><div class="ma-section" style="margin-top:16px">🌐 '+L().language+'</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px"><button class="ma-menu-btn" onclick="maSetLanguage(&quot;en&quot;)">English</button><button class="ma-menu-btn" onclick="maSetLanguage(&quot;kn&quot;)">ಕನ್ನಡ</button><button class="ma-menu-btn" onclick="maSetLanguage(&quot;hi&quot;)">हिन्दी</button></div><button class="ma-menu-btn" onclick="maOpenHelp()">🧭 '+L().help+'</button><button class="ma-menu-btn danger" onclick="maLogout()">⎋ '+L().logout+'</button></aside></div>';
     app.appendChild(root);
     let cards;
     if(admin) cards=[['👥','MANAGE USERS','Add drivers, mechanics and admins • status • role • password',adminUsers],['👨‍🔧','MECHANIC DAILY UPDATES','View all mechanic work from the central DailyWork sheet',adminWork],['📝','PROBLEM REPORTS','View driver vehicle problem reports',adminProblems],['📚','MAHINDRA DATA','Open supplied BSVI source library',()=>oldAbout&&oldAbout()]];
@@ -202,7 +225,7 @@
       '.bt-f1 b{background:#fde2e2;color:#c62828}.bt-f2 b{background:#e1efff;color:#1976d2}.bt-f3 b{background:#e5f6ea;color:#087443}.bt-f4 b{background:#ffeadc;color:#e65100}'+
       '.bt-footer{background:linear-gradient(180deg,#fff0f0,#ffe6e6);padding:24px 20px 30px;text-align:center;margin-top:15px;color:#b71c1c;font-weight:800}'+
       '.bt-footer small{display:block;color:#667085;font-weight:500;margin-top:5px}'+
-      '@media(max-width:520px){.bt-card{padding:26px 17px 22px}.bt-features{grid-template-columns:repeat(2,1fr)}.bt-top{padding-top:20px}.bt-slogan{margin-top:16px}}'+
+      '@media(max-width:520px){.bt-logo{width:min(330px,86vw)}.bt-card{padding:24px 17px 22px}.bt-features{grid-template-columns:repeat(2,1fr)}.bt-top{padding-top:12px}.bt-slogan{margin-top:14px}}'+
       '</style>'+
       '<header class="bt-top">'+
         '<img class="bt-logo" src="file:///android_asset/driver_mech_logo.jpg" alt="Drivers/Mech AI">'+
@@ -261,12 +284,39 @@
   function changeManagedRole(id){const r=document.getElementById('role_'+id).value;apiRequest('set_user_role',{userId:id,role:r},res=>{alert(res.ok?'Role updated.':(res.error||'Failed.'));loadUsers();});}
   function changeManagedStatus(id){const s=document.getElementById('status_'+id).value;apiRequest('set_user_status',{userId:id,status:s},res=>{alert(res.ok?'Status updated.':(res.error||'Failed.'));loadUsers();});}
   function resetManagedPassword(id){const p=prompt('Enter new password (minimum 8 characters):');if(!p)return;apiRequest('set_user_password',{userId:id,password:p},res=>alert(res.ok?'Password updated.':(res.error||'Failed.')));}
+  function formatWorkDate(date,createdAt){
+    const raw=createdAt||date||'';
+    const d=new Date(raw);
+    if(isNaN(d.getTime())) return String(date||raw||'');
+    return new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}).format(d);
+  }
   function workRecords(admin){
-    page(admin?L().allRecords:L().yourRecords,'<section class="ma-hero"><div class="ma-brand">👨‍🔧 '+(admin?L().allRecords:L().yourRecords)+'</div><div class="ma-sub">Central DailyWork records</div>'+(admin?'<button class="ma-card ma-primary" style="width:100%;margin-top:12px" onclick="exportMechanicData()">⬇️ '+L().export+'</button>':'')+'<div id="workList" style="margin-top:12px">'+L().loading+'</div></section>');
-    apiRequest('list_work',{},r=>{const box=document.getElementById('workList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load records.');return;}if(!(r.records||[]).length){box.innerHTML='<div class="status-note">'+L().noRecords+'</div>';return;}box.innerHTML='';r.records.forEach(x=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0';d.innerHTML='<b>'+esc(x.date)+' • '+esc(x.vehicleNumber)+'</b><div>'+esc(x.userName)+' • '+esc(x.workCompleted)+'</div><small style="color:#667085">'+esc(x.createdAt)+'</small>';box.appendChild(d);});});
+    window.__maWorkRecords=[];
+    page(admin?L().allRecords:L().yourRecords,'<section class="ma-hero"><div class="ma-brand">🚛 '+(admin?L().allRecords:L().yourRecords)+'</div><div class="ma-sub">Central DailyWork records</div>'+(admin?'<button class="ma-card ma-primary" style="width:100%;margin-top:12px" onclick="exportMechanicData()">⬇️ '+L().export+'</button>':'')+'<div id="workList" style="margin-top:12px">'+L().loading+'</div></section>');
+    apiRequest('list_work',{},r=>{
+      const box=document.getElementById('workList');if(!box)return;
+      if(!r.ok){box.innerHTML='<div class="status-note" style="border-left:5px solid #b71c1c">❌ '+esc(r.error||'Could not load records.')+'<br><button class="ma-card" style="margin-top:10px;width:100%" onclick="workRecords('+(admin?'true':'false')+')">↻ RETRY</button></div>';return;}
+      const records=Array.isArray(r.records)?r.records:[];window.__maWorkRecords=records;
+      if(!records.length){box.innerHTML='<div class="status-note">'+L().noRecords+'</div>';return;}
+      box.innerHTML='';
+      records.forEach(x=>{
+        const d=document.createElement('div');
+        d.style.cssText='background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin:10px 0;box-shadow:0 2px 8px #0000000a';
+        d.innerHTML='<div style="font-size:13px;color:#667085;font-weight:800">📅 '+esc(formatWorkDate(x.date,x.createdAt))+'</div><div style="font-size:20px;font-weight:900;margin-top:7px;color:#17202a">🚛 '+esc(x.vehicleNumber||'—')+'</div><div style="font-size:16px;font-weight:800;margin-top:7px">'+esc(x.userName||'')+'</div><div style="font-size:16px;line-height:1.45;margin-top:5px;white-space:pre-wrap">'+esc(x.workCompleted||'')+'</div>';
+        box.appendChild(d);
+      });
+    });
   }
-  function exportMechanicData(){apiRequest('export_work',{},r=>{if(!r.ok){alert(r.error||'Export failed.');return;}if(window.AndroidBridge?.saveTextFile)AndroidBridge.saveTextFile('Mahindra_Mechanic_DailyWork.csv',r.csv||'');else{const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(r.csv||'');a.download='Mahindra_Mechanic_DailyWork.csv';a.click();}});
+  function exportMechanicData(){
+    const records=Array.isArray(window.__maWorkRecords)?window.__maWorkRecords:[];
+    if(!records.length){alert('Load the records first, then tap DOWNLOAD DATA.');return;}
+    const lines=['Date,Time,Vehicle Number,User Name,Work Completed'];
+    records.forEach(x=>{const dt=formatWorkDate(x.date,x.createdAt).replace(/,/g,'');lines.push([dt,x.vehicleNumber||'',x.userName||'',x.workCompleted||''].map(v=>csvSafe(v)).join(','));});
+    const csv=lines.join('\r\n');
+    if(window.AndroidBridge?.saveTextFile)AndroidBridge.saveTextFile('Drivers_Mech_AI_DailyWork.csv',csv);
+    else{const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Drivers_Mech_AI_DailyWork.csv';a.click();}
   }
+  function csvSafe(v){return '"'+String(v??'').replace(/"/g,'""')+'"';}
   function adminWork(){workRecords(true)} function mechanicRecords(){workRecords(false)}
   function mechanicUpdate(){const u=getUser()||{};page(L().daily,'<section class="ma-hero"><div class="ma-brand">➕ '+L().daily+'</div><div class="ma-sub">'+L().mechanic+': '+esc(u.name||'')+'</div><div style="display:grid;gap:12px;margin-top:15px"><input id="mwVehicle" placeholder="'+L().vehicleNo+'" style="padding:15px;border:1px solid #d0d5dd;border-radius:10px;font-size:18px"><textarea id="mwWork" rows="7" placeholder="'+L().work+'" style="padding:15px;border:1px solid #d0d5dd;border-radius:10px;font-size:18px"><\/textarea><button class="ma-card" onclick="speakMechanicWork()">🎤 '+L().voice+'</button><button class="ma-card ma-primary" onclick="saveMechanicWork()">💾 '+L().save+'</button><div id="mwMsg" class="status-note"></div></div></section>');}
   function speakMechanicWork(){const st=document.getElementById('mwMsg');if(st)st.textContent='🎤 Listening…';window.nativeSpeechResult=function(text){const el=document.getElementById('mwWork');if(el)el.value=text||'';if(st)st.textContent=text?'✅ Voice captured.':'⚠️ No voice text captured.';window.nativeSpeechResult=null;};AndroidBridge.startSpeech(getLang()==='kn'?'kn-IN':getLang()==='hi'?'hi-IN':'en-IN');}
@@ -286,9 +336,20 @@ adblue:{kn:['ಫಿಲ್ಲರ್ ಪ್ರದೇಶ ಸ್ವಚ್ಛವಾ�
 safety:{kn:['ಚಾಲನೆ ಮಾಡುವಾಗ ಮೊಬೈಲ್ ಬಳಸಬೇಡಿ','ಸೀಟ್ ಬೆಲ್ಟ್ ಧರಿಸಿ','ಟ್ರಾಫಿಕ್ ನಿಯಮ ಮತ್ತು ವೇಗ ಮಿತಿ ಪಾಲಿಸಿ','ದಣಿದಾಗ ಚಾಲನೆ ಮಾಡಬೇಡಿ','ಸುರಕ್ಷಿತ ಅಂತರ ಇಡಿ','ಚಾಲನೆಗೆ ಮೊದಲು ವಾಹನ ಪರಿಶೀಲಿಸಿ','Repair ಕೆಲಸವನ್ನು authorized persons ಮೂಲಕ ಮಾಡಿಸಿ'],hi:['ड्राइविंग के दौरान मोबाइल न इस्तेमाल करें','सीट बेल्ट पहनें','ट्रैफिक नियम और स्पीड लिमिट मानें','थके होने पर ड्राइव न करें','सुरक्षित दूरी रखें','ड्राइविंग से पहले वाहन जांचें','Repair काम authorized persons से कराएं']}};
   function driverGuide(type){
     const lang=getLang(),items=DRIVER_GUIDES[type]||[],trn=DRIVER_TRANSLATIONS[type]||{};
-    const html=items.map((x,i)=>{const title=lang==='en'?x[1]:(trn[lang]?.[i]||x[1]);const q=encodeURIComponent('Mahindra BSVI truck '+x[1]+' driver training '+(lang==='kn'?'Kannada':lang==='hi'?'Hindi':'English'));const url=(type==='dpf'&&i===7)?'https://www.youtube.com/watch?v=mgCnCqjtwe4':'https://www.youtube.com/results?search_query='+q;return '<div class="ma-card" style="margin:9px 0;display:block;min-height:0"><b style="font-size:22px">'+x[0]+'</b><div style="font-size:18px;font-weight:900;margin-top:7px">'+esc(title)+'</div><small>'+esc(x[2])+'</small><button class="ma-card ma-primary" style="width:100%;margin-top:12px;min-height:64px" onclick="openRealYoutube(\''+esc(url).replace(/'/g,'&#39;')+'\')">▶ '+esc(L().video)+'</button></div>';}).join('');
-    const intro=type==='dpf'?'⚠️ DPF regeneration conditions and steps are taken from the supplied Mahindra BSVI driver-training material. During regeneration ATS/exhaust parts become very hot.':type==='warning'?'⚠️ Use the documented warning item and matching training-video search; do not guess a repair.':'📚 Every item below follows the supplied Mahindra BSVI driver-training material.';
-    page(DRIVER_GUIDE_TITLES[lang][type],'<section class="ma-hero"><div class="ma-brand">📚 '+esc(DRIVER_GUIDE_TITLES[lang][type])+'</div><div class="ma-sub">'+esc(intro)+'</div><button class="ma-card" style="width:100%;margin-top:12px" onclick="readDriverGuide(\''+type+'\')">🔊 '+esc(L().read)+'</button></section>'+html);
+    const html=items.map((x,i)=>{
+      const title=lang==='en'?x[1]:(trn[lang]?.[i]||x[1]);
+      const q=encodeURIComponent('Mahindra BSVI BS6 truck '+x[1]+' driver training '+(lang==='kn'?'Kannada':lang==='hi'?'Hindi':'English'));
+      const url=(type==='dpf'&&i===7)?'https://www.youtube.com/watch?v=mgCnCqjtwe4':'https://www.youtube.com/results?search_query='+q;
+      return '<div class="ma-card ma-guide-card" style="margin:10px 0;display:block;min-height:0;padding:16px">'+
+        '<div style="display:flex;align-items:center;gap:12px"><div style="width:58px;height:58px;border-radius:14px;background:#fff1f1;border:1px solid #f0caca;display:flex;align-items:center;justify-content:center;font-size:31px">🚛</div><div style="flex:1"><div style="font-size:18px;font-weight:900">'+(i+1)+'. '+esc(title)+'</div><small style="display:block;margin-top:4px">'+esc(lang==='en'?x[2]:(trn[lang]?.[i]||x[2]))+'</small></div></div>'+
+        '<button class="ma-card ma-primary" style="width:100%;margin-top:12px;min-height:60px;font-size:16px" onclick="openRealYoutube(\''+esc(url).replace(/'/g,'&#39;')+'\')">▶ '+esc(L().video)+'</button></div>';
+    }).join('');
+    const intros={
+      en:type==='dpf'?'⚠️ Follow only the documented Mahindra BSVI/BS6 procedure. ATS/exhaust parts become very hot during regeneration.':type==='warning'?'⚠️ Use the documented warning-light item. Do not guess a repair.':'📚 These steps are based on the supplied Mahindra BSVI driver-training material.',
+      kn:type==='dpf'?'⚠️ ನೀಡಿರುವ Mahindra BSVI/BS6 ವಿಧಾನವನ್ನು ಮಾತ್ರ ಅನುಸರಿಸಿ. DPF regeneration ಸಮಯದಲ್ಲಿ ATS/exhaust ಭಾಗಗಳು ತುಂಬಾ ಬಿಸಿಯಾಗುತ್ತವೆ.':type==='warning'?'⚠️ ನೀಡಿರುವ warning-light ಮಾಹಿತಿಯನ್ನು ಮಾತ್ರ ಬಳಸಿ. ಊಹೆಯಿಂದ repair ಮಾಡಬೇಡಿ.':'📚 ಈ ಹಂತಗಳು ನೀಡಿರುವ Mahindra BSVI driver-training material ಆಧಾರಿತವಾಗಿವೆ.',
+      hi:type==='dpf'?'⚠️ केवल दिए गए Mahindra BSVI/BS6 तरीके का पालन करें। DPF regeneration में ATS/exhaust parts बहुत गर्म होते हैं।':type==='warning'?'⚠️ दिए गए warning-light विवरण का ही उपयोग करें। अनुमान से repair न करें।':'📚 ये steps दिए गए Mahindra BSVI driver-training material पर आधारित हैं.'
+    };
+    page(DRIVER_GUIDE_TITLES[lang][type],'<section class="ma-hero"><div class="ma-brand">🚛 '+esc(DRIVER_GUIDE_TITLES[lang][type])+'</div><div class="ma-sub">'+esc(intros[lang])+'</div><button class="ma-card" style="width:100%;margin-top:12px" onclick="readDriverGuide(\''+type+'\')">🔊 '+esc(L().read)+'</button></section>'+html);
   }
   function readDriverGuide(type){const root=document.querySelector('#maApp .ma-main');if(!root)return;const text=[...root.querySelectorAll('.ma-card')].map(x=>x.innerText).join('. ');if(window.AndroidBridge?.speakText)AndroidBridge.speakText(text,getLang()==='kn'?'kn-IN':getLang()==='hi'?'hi-IN':'en-IN');}
   function adminProblems(){page('PROBLEM REPORTS','<section class="ma-hero"><div class="ma-brand">📝 Driver Problem Reports</div><div id="problemList">Loading…</div></section>');apiRequest('list_problems',{},r=>{const box=document.getElementById('problemList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load reports.');return;}if(!(r.records||[]).length){box.innerHTML='<div class="status-note">No reports yet.</div>';return;}box.innerHTML='';r.records.forEach(x=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0';d.innerHTML='<b>'+esc(x.date)+' '+esc(x.time)+' • '+esc(x.vehicleNumber||'No vehicle')+'</b><div>'+esc(x.userName)+' • '+esc(roleLabel(x.role))+'</div><div style="margin-top:7px;white-space:pre-wrap">'+esc(x.problem||x.photoText)+'</div>';box.appendChild(d);});});}
