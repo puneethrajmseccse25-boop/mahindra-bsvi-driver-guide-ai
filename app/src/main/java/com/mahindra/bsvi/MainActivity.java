@@ -477,8 +477,8 @@ public class MainActivity extends Activity {
                                 (HttpURLConnection) new URL(currentUrl).openConnection();
 
                         c.setRequestMethod(requestMethod);
-                        c.setConnectTimeout(30000);
-                        c.setReadTimeout(60000);
+                        c.setConnectTimeout(20000);
+                        c.setReadTimeout(90000);
                         c.setInstanceFollowRedirects(false);
 
                         c.setRequestProperty(
