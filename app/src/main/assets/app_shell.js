@@ -308,6 +308,29 @@
   window.openProblemCamera=window.driverCamera;
   window.nativeCameraResult=function(ok){const st=document.getElementById('driverPhotoStatus')||document.getElementById('photoStatus');if(st)st.textContent=ok?'✅ Photo captured. Now speak or type the problem.':'❌ Camera was not completed. Tap Take Photo again.'};
 
+  // Inline handlers inside generated HTML need explicit window exports because this file uses an IIFE.
+  Object.assign(window,{
+    addManagedUser:addManagedUser,
+    changeManagedRole:changeManagedRole,
+    changeManagedStatus:changeManagedStatus,
+    resetManagedPassword:resetManagedPassword,
+    saveMechanicWork:saveMechanicWork,
+    speakMechanicWork:speakMechanicWork,
+    saveDriverProblem:saveDriverProblem,
+    exactProblem:exactProblem,
+    findExactSolution:findExactSolution,
+    focusProblemText:focusProblemText,
+    readExactSolution:readExactSolution,
+    startExactCamera:startExactCamera,
+    startExactVoice:startExactVoice,
+    maBack:maBack,
+    maDashboard:maDashboard,
+    maLogout:maLogout,
+    maOpenMenu:maOpenMenu,
+    maCloseMenu:maCloseMenu,
+    maOpenHelp:maOpenHelp
+  });
+
   // Fresh Activity launches are reset by the native layer. Do not reload the WebView here:
   // reloading races the secure-login bootstrap and can leave only the static header visible.
   localStorage.removeItem(TOKEN);localStorage.removeItem(USER);localStorage.removeItem(MODE);
