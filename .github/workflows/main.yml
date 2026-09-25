@@ -32,6 +32,9 @@ jobs:
       - name: Apply deterministic network/login fix
         run: python3 build/network_fix.py
 
+      - name: Add uploaded app logo
+        run: python3 build/logo_asset.py
+
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
