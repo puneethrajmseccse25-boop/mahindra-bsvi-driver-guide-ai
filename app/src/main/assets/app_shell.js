@@ -212,35 +212,35 @@
     root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#f7f8fb;overflow:auto;font-family:Arial,sans-serif;color:#10264b';
     root.innerHTML='<style>'+
       '#maLogin *{box-sizing:border-box}'+
-      '.bt-top{background:linear-gradient(180deg,#ffe600 0%,#ffd900 72%,#ffffff 100%);padding:26px 22px 44px;text-align:center;position:relative;overflow:hidden}'+
-      '.bt-logo{width:min(760px,96%);height:auto;display:block;margin:0 auto 8px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.18))}'+
-      '.bt-brand{font-weight:800;font-size:clamp(17px,4vw,26px);color:#123a76;letter-spacing:.2px}'+
-      '.bt-tag{font-size:clamp(14px,3.2vw,19px);font-weight:700;color:#17376d;margin-top:8px}'+
-      '.bt-slogan{font-size:clamp(24px,6vw,42px);font-weight:800;font-style:italic;color:#163d7b;margin:22px auto 0;max-width:700px;line-height:1.08}'+
-      '.bt-road{height:72px;margin:20px -22px -44px;background:linear-gradient(160deg,transparent 40%,#d32f2f 41%,#d32f2f 44%,#fff 45%,#fff 48%,#6b7280 49%,#4b5563 100%);opacity:.75}'+
-      '.bt-card{width:min(720px,calc(100% - 28px));margin:-2px auto 0;background:#fff;border-radius:28px;padding:30px 24px 24px;box-shadow:0 12px 38px rgba(16,38,75,.13);position:relative}'+
-      '.bt-title{text-align:center;font-size:clamp(31px,7vw,48px);margin:0 0 6px;color:#102b5c;font-weight:800}'+
-      '.bt-sub{text-align:center;color:#667085;font-size:clamp(16px,4vw,21px);margin:0 0 25px}'+
+      '.bt-top{background:linear-gradient(180deg,#fff8c9 0%,#ffe600 58%,#f7f9fc 100%);padding:24px 18px 30px;text-align:center;position:relative;overflow:hidden}'+
+      '.bt-logo{width:168px;height:168px;object-fit:cover;display:block;margin:0 auto 12px;border-radius:28px;box-shadow:0 10px 28px rgba(16,38,75,.20);background:#fff}'+
+      '.bt-brand{font-weight:900;font-size:clamp(18px,4.5vw,27px);color:#123a76;letter-spacing:.2px}'+
+      '.bt-tag{font-size:clamp(13px,3.1vw,17px);font-weight:700;color:#3f5270;margin-top:7px}'+
+      '.bt-slogan{font-size:clamp(20px,5vw,32px);font-weight:900;color:#123a76;margin:16px auto 0;max-width:700px;line-height:1.08}'+
+      '.bt-road{height:16px;margin:24px -18px -30px;background:linear-gradient(90deg,#d8b900 0%,#ffe600 48%,#123a76 49%,#123a76 100%);opacity:.95}'+
+      '.bt-card{width:min(560px,calc(100% - 28px));margin:0 auto;background:#fff;border-radius:24px;padding:26px 22px 24px;box-shadow:0 12px 34px rgba(16,38,75,.12);position:relative;border:1px solid #e7ebf2}'+
+      '.bt-title{text-align:center;font-size:clamp(29px,7vw,42px);margin:0 0 6px;color:#102b5c;font-weight:900}'+
+      '.bt-sub{text-align:center;color:#667085;font-size:clamp(15px,3.8vw,18px);margin:0 0 22px}'+
       '.bt-label{display:block;font-size:16px;font-weight:800;color:#344054;margin:0 0 8px}'+
       '.bt-inputwrap{position:relative;margin-bottom:17px}'+
       '.bt-input{width:100%;height:62px;border:2px solid #d8dee8;border-radius:16px;padding:8px 16px 8px 54px;font-size:21px;color:#10264b;background:#fff;outline:none}'+
       '.bt-input:focus{border-color:#d32f2f;box-shadow:0 0 0 4px rgba(211,47,47,.1)}'+
       '.bt-icon{position:absolute;left:17px;top:18px;font-size:23px;color:#667085}'+
       '.bt-eye{position:absolute;right:10px;top:7px;height:48px;width:48px;border:0;background:transparent;font-size:23px;color:#667085}'+
-      '.bt-login{width:100%;height:64px;border:0;border-radius:16px;background:linear-gradient(90deg,#d91c1c,#b71c1c);color:#fff;font-size:22px;font-weight:800;box-shadow:0 8px 18px rgba(183,28,28,.22)}'+
+      '.bt-login{width:100%;height:58px;border:0;border-radius:14px;background:#123a76;color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 18px rgba(18,58,118,.20)}'+
       '.bt-login:disabled{opacity:.65}'+
       '.bt-error{color:#b42318;font-weight:700;font-size:15px;min-height:23px;margin-top:12px;text-align:center}'+
       '.bt-note{text-align:center;color:#667085;font-size:14px;line-height:1.45;margin-top:14px}'+
-      '.bt-features{width:min(720px,calc(100% - 28px));margin:25px auto 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}'+
+      '.bt-features{display:none}'+
       '.bt-feature{background:#fff;border-radius:18px;padding:15px 8px;text-align:center;box-shadow:0 5px 18px rgba(16,38,75,.08);font-weight:800;font-size:13px;color:#142b54}'+
       '.bt-feature b{display:flex;width:50px;height:50px;margin:0 auto 9px;border-radius:15px;align-items:center;justify-content:center;font-size:24px}'+
       '.bt-f1 b{background:#fde2e2;color:#c62828}.bt-f2 b{background:#e1efff;color:#1976d2}.bt-f3 b{background:#e5f6ea;color:#087443}.bt-f4 b{background:#ffeadc;color:#e65100}'+
-      '.bt-footer{background:linear-gradient(180deg,#fff0f0,#ffe6e6);padding:24px 20px 30px;text-align:center;margin-top:15px;color:#b71c1c;font-weight:800}'+
+      '.bt-footer{display:none}'+
       '.bt-footer small{display:block;color:#667085;font-weight:500;margin-top:5px}'+
-      '@media(max-width:520px){.bt-logo{width:min(330px,86vw);height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:22px;display:block;margin:0 auto;box-shadow:0 6px 18px #0002}.bt-card{padding:24px 17px 22px}.bt-features{grid-template-columns:repeat(2,1fr)}.bt-top{padding-top:12px}.bt-slogan{margin-top:14px}}'+
+      '@media(max-width:520px){.bt-logo{width:148px;height:148px;border-radius:24px}.bt-card{padding:23px 17px 21px}.bt-top{padding-top:16px}.bt-slogan{margin-top:12px}}'+
       '</style>'+
       '<header class="bt-top">'+
-        '<img class="bt-logo" src="file:///android_asset/driver_mech_logo.jpg" alt="Drivers/Mech AI">'+
+        '<img class="bt-logo" src="file:///android_asset/driver_mech_logo.webp" alt="Driver/Mech AI">'+
         '<div class="bt-brand">DRIVERS/MECH AI</div>'+
         '<div class="bt-tag">Driver & Mechanic AI • Kannada • English • Hindi</div>'+
         '<div class="bt-slogan">Safe Drives<br>Stronger Tomorrows</div>'+
@@ -371,7 +371,7 @@ safety:{kn:['ಚಾಲನೆ ಮಾಡುವಾಗ ಮೊಬೈಲ್ ಬಳಸ�
       kn:type==='dpf'?'⚠️ ನೀಡಿರುವ Mahindra BSVI/BS6 ವಿಧಾನವನ್ನು ಅನುಸರಿಸಿ. Regeneration ಸಮಯದಲ್ಲಿ Exhaust / ATS parts ತುಂಬಾ ಬಿಸಿಯಾಗುತ್ತವೆ.':'📚 ಕೆಳಗಿನ ಪ್ರತಿಯೊಂದು item ನೀಡಿರುವ Mahindra driver-training guide ಆಧಾರಿತವಾಗಿದೆ.',
       hi:type==='dpf'?'⚠️ दिए गए Mahindra BSVI/BS6 तरीके का पालन करें। Regeneration के दौरान Exhaust / ATS parts बहुत गर्म होते हैं।':'📚 नीचे दिए गए सभी items दिए गए Mahindra driver-training guide पर आधारित हैं।'
     };
-    page(titles[type],'<section class="ma-hero"><div class="ma-brand">🚛 '+esc(titles[type])+'</div><div class="ma-sub">'+esc(intros[lang])+'</div><button class="ma-card" style="width:100%;margin-top:12px" onclick="readDriverGuide(\''+type+'\')">🔊 '+esc(L().read)+'</button></section><section class="ma-guide-list">'+html+'</section>');
+    page(titles[type],'<section class="ma-hero"><div class="ma-brand">'+esc(titles[type])+'</div><div class="ma-sub">'+esc(intros[lang])+'</div></section><section class="ma-guide-list">'+html+'</section>');
   }
   function readDriverGuide(type){const root=document.querySelector('#maApp .ma-main');if(!root)return;const text=[...root.querySelectorAll('.ma-card')].map(x=>x.innerText).join('. ');if(window.AndroidBridge?.speakText)AndroidBridge.speakText(text,getLang()==='kn'?'kn-IN':getLang()==='hi'?'hi-IN':'en-IN');}
   function adminProblems(){page('PROBLEM REPORTS','<section class="ma-hero"><div class="ma-brand">📝 Driver Problem Reports</div><div id="problemList">Loading…</div></section>');apiRequest('list_problems',{},r=>{const box=document.getElementById('problemList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load reports.');return;}if(!(r.records||[]).length){box.innerHTML='<div class="status-note">No reports yet.</div>';return;}box.innerHTML='';r.records.forEach(x=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0';d.innerHTML='<b>'+esc(x.date)+' '+esc(x.time)+' • '+esc(x.vehicleNumber||'No vehicle')+'</b><div>'+esc(x.userName)+' • '+esc(roleLabel(x.role))+'</div><div style="margin-top:7px;white-space:pre-wrap">'+esc(x.problem||x.photoText)+'</div>';box.appendChild(d);});});}
