@@ -3,4 +3,4 @@ data="/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDA
 out=pathlib.Path("app/src/main/res/drawable")
 out.mkdir(parents=True,exist_ok=True)
 (out/"logo_exact.jpg").write_bytes(base64.b64decode(data + '=' * ((4 - len(data) % 4) % 4)))
-(pathlib.Path("app/src/main/assets")/"driver_mech_logo.jpg").write_bytes(base64.b64decode(data))
+(pathlib.Path("app/src/main/assets")/"driver_mech_logo.jpg").write_bytes(base64.b64decode(data + '=' * ((4 - len(data) % 4) % 4)))
