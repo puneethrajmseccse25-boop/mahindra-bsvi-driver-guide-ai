@@ -354,7 +354,7 @@ function listWork_(req, sessionUser) {
 
     out.push({
       id:String(r[0]),
-      date:String(r[1]),
+      date:sheetDate_(r[1]),
       vehicleNumber:String(r[2]),
       userId:String(r[3]),
       userName:String(r[4]),
@@ -365,6 +365,15 @@ function listWork_(req, sessionUser) {
 
   out.reverse();
   return { ok:true, code:200, records:out };
+}
+
+function sheetDate_(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v.getTime())) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone() || 'Asia/Kolkata', 'yyyy-MM-dd');
+  }
+  const text = String(v == null ? '' : v).trim();
+  const m = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : text;
 }
 
 function exportWork_(req, sessionUser) {
