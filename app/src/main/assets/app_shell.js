@@ -46,17 +46,14 @@
   function apiRequest(action,payload,done){
     const req=Object.assign({action:action,token:localStorage.getItem(TOKEN)||''},payload||{});
     const prev=window.appHttpResult;
-    window.appHttpResult=function(raw){
-      let out=raw,res=null;
-      try{out=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){}
-      try{res=typeof out.body==='string'?JSON.parse(out.body):(out.body||out);}catch(e){try{res=typeof raw==='string'?JSON.parse(raw):raw;}catch(e2){res={ok:false,error:'Backend response could not be read.'};}}
-      window.appHttpResult=prev;
-      if(done)done(res);
-    };
+    let finished=false;
+    const finish=(res)=>{if(finished)return;finished=true;window.appHttpResult=prev;if(done)done(res||{ok:false,error:'Empty backend response.'});};
+    window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
     try{
-      if(!window.AndroidBridge||!AndroidBridge.cloudRequest){window.appHttpResult=prev;done&&done({ok:false,error:'Android network bridge is unavailable.'});return;}
+      if(!window.AndroidBridge||!AndroidBridge.cloudRequest){finish({ok:false,error:'Android network bridge is unavailable.'});return;}
       AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify(req));
-    }catch(e){window.appHttpResult=prev;done&&done({ok:false,error:String(e.message||e)});}
+    }catch(e){finish({ok:false,error:String(e.message||e)});}
+    setTimeout(()=>finish({ok:false,error:'Request timed out. Please try again.'}),30000);
   }
 
   function roleLabel(r){r=String(r||'').toUpperCase();return r==='USER'?'DRIVER':r;}
@@ -220,7 +217,7 @@
     page('MANAGE USERS','<section class="ma-hero"><div class="ma-brand">👥 Add User</div><div class="ma-sub">Mobile number is the login username.</div><div style="display:grid;gap:10px;margin-top:15px"><input id="auName" placeholder="Name" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><input id="auMobile" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><select id="auRole" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><option>DRIVER</option><option>MECHANIC</option><option>ADMIN</option></select><select id="auStatus" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><option>ACTIVE</option><option>DISABLED</option></select><input id="auPass" type="password" placeholder="Password (optional; blank = last 4)" style="padding:14px;border:1px solid #d0d5dd;border-radius:10px"><button class="ma-card ma-primary" style="width:100%" onclick="addManagedUser()">➕ CREATE USER</button><div id="auMsg" class="status-note"></div></div></section><section class="ma-hero"><div class="ma-brand">Current Users</div><div id="userList">Loading…</div></section>');loadUsers();
   }
   function loadUsers(){apiRequest('list_users',{},r=>{const box=document.getElementById('userList');if(!box)return;if(!r.ok){box.innerHTML='❌ '+esc(r.error||'Could not load users.');return;}box.innerHTML='';(r.users||[]).forEach(u=>{const d=document.createElement('div');d.style.cssText='border:1px solid #e5e7eb;border-radius:14px;padding:13px;margin:9px 0';d.innerHTML='<b>'+esc(u.name)+'</b><div style="color:#667085">'+esc(u.mobile)+' • '+esc(roleLabel(u.role))+' • '+esc(u.status)+'</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><select id="role_'+u.id+'" style="padding:8px"><option '+(roleLabel(u.role)==='DRIVER'?'selected':'')+'>DRIVER</option><option '+(u.role==='MECHANIC'?'selected':'')+'>MECHANIC</option><option '+(u.role==='ADMIN'?'selected':'')+'>ADMIN</option></select><select id="status_'+u.id+'" style="padding:8px"><option '+(u.status==='ACTIVE'?'selected':'')+'>ACTIVE</option><option '+(u.status!=='ACTIVE'?'selected':'')+'>DISABLED</option></select><button onclick="changeManagedRole(\''+u.id+'\')">Role</button><button onclick="changeManagedStatus(\''+u.id+'\')">Status</button><button onclick="resetManagedPassword(\''+u.id+'\')">Password</button></div>';box.appendChild(d);});});}
-  function addManagedUser(){const msg=document.getElementById('auMsg'),n=document.getElementById('auName').value.trim(),m=document.getElementById('auMobile').value.replace(/\D/g,''),r=document.getElementById('auRole').value,s=document.getElementById('auStatus').value,p=document.getElementById('auPass').value;if(!n||!/\d{10}/.test(m)){msg.textContent='Enter name and 10-digit mobile.';return;}apiRequest('add_user',{name:n,mobile:m,role:r,password:p},res=>{if(!res.ok){msg.textContent='❌ '+(res.error||'Could not create user.');return;}msg.textContent='✅ User created. Initial password: '+(p||m.slice(-4));apiRequest('set_user_status',{userId:res.user.id,status:s},()=>loadUsers());document.getElementById('auName').value='';document.getElementById('auMobile').value='';document.getElementById('auPass').value='';});}
+  function addManagedUser(){const msg=document.getElementById('auMsg'),n=document.getElementById('auName').value.trim(),m=document.getElementById('auMobile').value.replace(/\D/g,''),r=document.getElementById('auRole').value,s=document.getElementById('auStatus').value,p=document.getElementById('auPass').value;if(!n||!/^[0-9]{10}$/.test(m)){msg.textContent='Enter name and 10-digit mobile.';return;}msg.textContent='⏳ Creating user…';apiRequest('add_user',{name:n,mobile:m,role:r,password:p,status:s},res=>{if(!res||!res.ok){msg.textContent='❌ '+((res&&res.error)||'Could not create user.');return;}msg.textContent='✅ User created successfully.';document.getElementById('auName').value='';document.getElementById('auMobile').value='';document.getElementById('auPass').value='';loadUsers();});}
   function changeManagedRole(id){const r=document.getElementById('role_'+id).value;apiRequest('set_user_role',{userId:id,role:r},res=>{alert(res.ok?'Role updated.':(res.error||'Failed.'));loadUsers();});}
   function changeManagedStatus(id){const s=document.getElementById('status_'+id).value;apiRequest('set_user_status',{userId:id,status:s},res=>{alert(res.ok?'Status updated.':(res.error||'Failed.'));loadUsers();});}
   function resetManagedPassword(id){const p=prompt('Enter new password (minimum 8 characters):');if(!p)return;apiRequest('set_user_password',{userId:id,password:p},res=>alert(res.ok?'Password updated.':(res.error||'Failed.')));}
