@@ -69,38 +69,50 @@
   }
   function oldDriverCard(label){openRealVideo(label);}
 
+  const apiQueue=[];let apiBusy=false;
   function apiRequest(action,payload,done){
+    apiQueue.push({action:action,payload:payload||{},done:done});
+    pumpApiQueue();
+  }
+  function pumpApiQueue(){
+    if(apiBusy||!apiQueue.length)return;
+    apiBusy=true;
+    const job=apiQueue.shift(),action=job.action,payload=job.payload,done=job.done;
     const req=Object.assign({action:action,token:localStorage.getItem(TOKEN)||''},payload||{});
+    let attempt=0,finished=false;
     const retryable=new Set(['list_work','list_users','list_problems','list_reports']);
-    let attempt=0, settled=false;
-    const run=()=>{
-      if(settled)return;
-      attempt++;
-      const prev=window.appHttpResult;
-      let finished=false;
-      const finish=(res)=>{
-        if(finished||settled)return;
-        finished=true;window.appHttpResult=prev;
-        if(res&&res.ok){settled=true;if(done)done(res);return;}
-        if(retryable.has(action)&&attempt<3){
-          setTimeout(run,700);
-          return;
-        }
-        settled=true;
+    const finish=(res)=>{
+      if(finished)return;
+      finished=true;
+      window.appHttpResult=null;
+      if(res&&res.ok){
+        if(done)done(res);
+      }else if(retryable.has(action)&&attempt<3){
+        setTimeout(()=>{finished=false;run();},800);
+        return;
+      }else{
         if(done)done(res||{ok:false,error:'Empty backend response.'});
-      };
+      }
+      apiBusy=false;
+      setTimeout(pumpApiQueue,30);
+    };
+    const run=()=>{
+      if(finished)return;
+      attempt++;
       window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
       try{
         if(!window.AndroidBridge||!AndroidBridge.cloudRequest){finish({ok:false,error:'Android network bridge is unavailable.'});return;}
         AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify(req));
       }catch(e){finish({ok:false,error:String(e.message||e)});return;}
       setTimeout(()=>{
-        if(finished||settled)return;
-        finished=true;window.appHttpResult=prev;
-        if(retryable.has(action)&&attempt<3){setTimeout(run,300);return;}
-        settled=true;
-        if(done)done({ok:false,error:'Backend request timed out. Please try again.'});
-      },45000);
+        if(finished)return;
+        if(retryable.has(action)&&attempt<3){
+          window.appHttpResult=null;
+          setTimeout(run,800);
+        }else{
+          finish({ok:false,error:'Backend request timed out. Please try again.'});
+        }
+      },65000);
     };
     run();
   }
@@ -286,9 +298,12 @@
   function resetManagedPassword(id){const p=prompt('Enter new password (minimum 8 characters):');if(!p)return;apiRequest('set_user_password',{userId:id,password:p},res=>alert(res.ok?'Password updated.':(res.error||'Failed.')));}
   function formatWorkDate(date,createdAt){
     const raw=createdAt||date||'';
-    const d=new Date(raw);
+    let d=new Date(raw);
+    if(isNaN(d.getTime()) && date){d=new Date(String(date).slice(0,10)+'T00:00:00+05:30');}
     if(isNaN(d.getTime())) return String(date||raw||'');
-    return new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}).format(d);
+    const parts=new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}).formatToParts(d);
+    const get=k=>parts.find(x=>x.type===k)?.value||'';
+    return get('day')+' '+get('month')+' '+get('year')+' • '+get('hour')+':'+get('minute')+' '+get('dayPeriod');
   }
   function workRecords(admin){
     window.__maWorkRecords=[];
@@ -297,12 +312,15 @@
       const box=document.getElementById('workList');if(!box)return;
       if(!r.ok){box.innerHTML='<div class="status-note" style="border-left:5px solid #b71c1c">❌ '+esc(r.error||'Could not load records.')+'<br><button class="ma-card" style="margin-top:10px;width:100%" onclick="workRecords('+(admin?'true':'false')+')">↻ RETRY</button></div>';return;}
       const records=Array.isArray(r.records)?r.records:[];window.__maWorkRecords=records;
-      if(!records.length){box.innerHTML='<div class="status-note">'+L().noRecords+'</div>';return;}
+      if(!records.length){
+        box.innerHTML='<div class="status-note" style="border-left:5px solid #b71c1c"><b>'+L().noRecords+'</b><br><small>Central DailyWork returned no rows. Tap refresh to check again.</small><br><button class="ma-card ma-primary" style="width:100%;margin-top:10px" onclick="workRecords('+(admin?'true':'false')+')">↻ REFRESH RECORDS</button></div>';
+        return;
+      }
       box.innerHTML='';
       records.forEach(x=>{
         const d=document.createElement('div');
         d.style.cssText='background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin:10px 0;box-shadow:0 2px 8px #0000000a';
-        d.innerHTML='<div style="font-size:13px;color:#667085;font-weight:800">📅 '+esc(formatWorkDate(x.date,x.createdAt))+'</div><div style="font-size:20px;font-weight:900;margin-top:7px;color:#17202a">🚛 '+esc(x.vehicleNumber||'—')+'</div><div style="font-size:16px;font-weight:800;margin-top:7px">'+esc(x.userName||'')+'</div><div style="font-size:16px;line-height:1.45;margin-top:5px;white-space:pre-wrap">'+esc(x.workCompleted||'')+'</div>';
+        d.innerHTML='<div style="font-size:15px;color:#667085;font-weight:900">📅 '+esc(formatWorkDate(x.date,x.createdAt))+'</div><div style="font-size:22px;font-weight:900;margin-top:9px;color:#17202a">🚛 '+esc(x.vehicleNumber||'—')+'</div><div style="font-size:15px;color:#667085;font-weight:800;margin-top:6px">'+esc(x.userName||'')+'</div><div style="font-size:17px;line-height:1.45;margin-top:7px;white-space:pre-wrap">'+esc(x.workCompleted||'')+'</div>';
         box.appendChild(d);
       });
     });
