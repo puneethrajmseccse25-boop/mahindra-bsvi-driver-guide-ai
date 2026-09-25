@@ -5,7 +5,7 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_app"
+        android:icon="@drawable/logo_exact"
         android:label="@string/app_name"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
