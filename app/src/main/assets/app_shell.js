@@ -240,7 +240,7 @@
       '@media(max-width:520px){.bt-logo{width:158px;height:158px;border-radius:24px}.bt-card{padding:23px 17px 21px}.bt-top{padding-top:16px}.bt-slogan{margin-top:12px}}'+
       '</style>'+
       '<header class="bt-top">'+
-        '<img class="bt-logo" src="file:///android_asset/driver_mech_logo.jpg" alt="Driver/Mech AI">'+
+        '<img class="bt-logo" src="driver_mech_logo.jpg" alt="Driver/Mech AI">'+
         '<div class="bt-brand">DRIVERS/MECH AI</div>'+
         '<div class="bt-tag">Driver & Mechanic AI • Kannada • English • Hindi</div>'+
         '<div class="bt-slogan">Safe Drives<br>Stronger Tomorrows</div>'+
