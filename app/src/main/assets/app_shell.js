@@ -209,81 +209,69 @@
     hideOld();document.getElementById('maApp')?.remove();document.getElementById('secureAuth')?.remove();
     let root=document.getElementById('maLogin');if(root)root.remove();
     root=document.createElement('div');root.id='maLogin';
-    root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#f7f8fb;overflow:auto;font-family:Arial,sans-serif;color:#10264b';
+    root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#fff;overflow:auto;font-family:Arial,sans-serif;color:#152f63';
     root.innerHTML='<style>'+
       '#maLogin *{box-sizing:border-box}'+
-      '.bt-top{background:linear-gradient(180deg,#fff8c9 0%,#ffe600 58%,#f7f9fc 100%);padding:24px 18px 30px;text-align:center;position:relative;overflow:hidden}'+
-      '.bt-logo{width:170px;height:170px;object-fit:contain;object-position:center;display:block;margin:0 auto 12px;border-radius:28px;box-shadow:0 10px 28px rgba(16,38,75,.18);background:#fff}'+
-      '.bt-brand{font-weight:900;font-size:clamp(18px,4.5vw,27px);color:#123a76;letter-spacing:.2px}'+
-      '.bt-tag{font-size:clamp(13px,3.1vw,17px);font-weight:700;color:#3f5270;margin-top:7px}'+
-      '.bt-slogan{font-size:clamp(20px,5vw,32px);font-weight:900;color:#123a76;margin:16px auto 0;max-width:700px;line-height:1.08}'+
-      '.bt-road{height:16px;margin:24px -18px -30px;background:linear-gradient(90deg,#d8b900 0%,#ffe600 48%,#123a76 49%,#123a76 100%);opacity:.95}'+
-      '.bt-card{width:min(560px,calc(100% - 28px));margin:0 auto;background:#fff;border-radius:24px;padding:26px 22px 24px;box-shadow:0 12px 34px rgba(16,38,75,.12);position:relative;border:1px solid #e7ebf2}'+
-      '.bt-title{text-align:center;font-size:clamp(29px,7vw,42px);margin:0 0 6px;color:#102b5c;font-weight:900}'+
-      '.bt-sub{text-align:center;color:#667085;font-size:clamp(15px,3.8vw,18px);margin:0 0 22px}'+
-      '.bt-label{display:block;font-size:16px;font-weight:800;color:#344054;margin:0 0 8px}'+
-      '.bt-inputwrap{position:relative;margin-bottom:17px}'+
-      '.bt-input{width:100%;height:62px;border:2px solid #d8dee8;border-radius:16px;padding:8px 16px 8px 54px;font-size:21px;color:#10264b;background:#fff;outline:none}'+
-      '.bt-input:focus{border-color:#d32f2f;box-shadow:0 0 0 4px rgba(211,47,47,.1)}'+
-      '.bt-icon{position:absolute;left:17px;top:18px;font-size:23px;color:#667085}'+
-      '.bt-eye{position:absolute;right:10px;top:7px;height:48px;width:48px;border:0;background:transparent;font-size:23px;color:#667085}'+
-      '.bt-login{width:100%;height:58px;border:0;border-radius:14px;background:#123a76;color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 18px rgba(18,58,118,.20)}'+
+      '.login-page{min-height:100vh;background:#fff}'+
+      '.login-head{background:linear-gradient(180deg,#ffd928 0%,#ffd800 62%,#fff0a0 100%);padding:18px 16px 22px;text-align:center}'+
+      '.bt-company{font-size:clamp(24px,7vw,42px);font-weight:1000;letter-spacing:.2px;color:#c71919;text-shadow:1px 1px 0 #fff}'+
+      '.bt-authorized{font-size:13px;font-weight:900;color:#173d76;margin-top:2px}'+
+      '.bt-logo{width:104px;height:104px;object-fit:contain;display:block;margin:12px auto 9px;border-radius:22px;box-shadow:0 5px 14px rgba(0,0,0,.18);background:#fff}'+
+      '.bt-brand{font-weight:1000;font-size:clamp(23px,6vw,31px);color:#173d76}'+
+      '.bt-tag{font-size:13px;font-weight:800;color:#173d76;margin-top:6px}'+
+      '.bt-slogan{font-size:clamp(18px,5vw,25px);font-weight:1000;color:#173d76;margin-top:12px;line-height:1.08}'+
+      '.bt-pills{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:11px}'+
+      '.bt-pill{border:0;border-radius:999px;background:#fff;color:#173d76;padding:6px 11px;font-weight:900;font-size:11px}'+
+      '.bt-pill.active{background:#173d76;color:#fff}'+
+      '.login-road{height:13px;background:linear-gradient(90deg,#d9bc19 0 49%,#173d76 49% 100%)}'+
+      '.bt-card{width:min(390px,calc(100% - 30px));margin:0 auto 22px;background:#fff;border-radius:24px;padding:23px 18px 20px;box-shadow:0 8px 25px rgba(16,38,75,.13);border:1px solid #e5e7eb}'+
+      '.bt-title{text-align:center;font-size:clamp(26px,7vw,34px);margin:0 0 5px;color:#173d76;font-weight:1000}'+
+      '.bt-sub{text-align:center;color:#667085;font-size:13px;margin:0 0 18px}'+
+      '.bt-label{display:block;font-size:14px;font-weight:900;color:#344054;margin:0 0 7px}'+
+      '.bt-inputwrap{position:relative;margin-bottom:13px}'+
+      '.bt-input{width:100%;height:56px;border:2px solid #d8dee8;border-radius:13px;padding:8px 48px 8px 48px;font-size:18px;color:#10264b;background:#fff;outline:none}'+
+      '.bt-input:focus{border-color:#c71919;box-shadow:0 0 0 3px rgba(199,25,25,.09)}'+
+      '.bt-icon{position:absolute;left:14px;top:15px;font-size:21px}'+
+      '.bt-eye{position:absolute;right:5px;top:4px;height:46px;width:46px;border:0;background:transparent;font-size:21px}'+
+      '.bt-login{width:100%;height:54px;border:0;border-radius:12px;background:#c71919;color:#fff;font-size:18px;font-weight:1000;box-shadow:0 7px 14px rgba(199,25,25,.2)}'+
       '.bt-login:disabled{opacity:.65}'+
-      '.bt-error{color:#b42318;font-weight:700;font-size:15px;min-height:23px;margin-top:12px;text-align:center}'+
-      '.bt-note{text-align:center;color:#667085;font-size:14px;line-height:1.45;margin-top:14px}'+
-      '.bt-features{display:none}'+
-      '.bt-feature{background:#fff;border-radius:18px;padding:15px 8px;text-align:center;box-shadow:0 5px 18px rgba(16,38,75,.08);font-weight:800;font-size:13px;color:#142b54}'+
-      '.bt-feature b{display:flex;width:50px;height:50px;margin:0 auto 9px;border-radius:15px;align-items:center;justify-content:center;font-size:24px}'+
-      '.bt-f1 b{background:#fde2e2;color:#c62828}.bt-f2 b{background:#e1efff;color:#1976d2}.bt-f3 b{background:#e5f6ea;color:#087443}.bt-f4 b{background:#ffeadc;color:#e65100}'+
-      '.bt-footer{display:none}'+
-      '.bt-footer small{display:block;color:#667085;font-weight:500;margin-top:5px}'+
-      '@media(max-width:520px){.bt-logo{width:158px;height:158px;border-radius:24px}.bt-card{padding:23px 17px 21px}.bt-top{padding-top:16px}.bt-slogan{margin-top:12px}}'+
+      '.bt-error{color:#b42318;font-weight:700;font-size:13px;min-height:20px;margin-top:10px;text-align:center}'+
+      '.bt-note{text-align:center;color:#667085;font-size:11px;line-height:1.4;margin-top:12px}'+
       '</style>'+
-      '<header class="bt-top">'+
+      '<div class="login-page"><header class="login-head">'+
+        '<div class="bt-company">BALAJI TRANSPORTS</div>'+
+        '<div class="bt-authorized">JSW AUTHORIZED TRANSPORTERS</div>'+
         '<img class="bt-logo" src="driver_mech_logo.jpg" alt="Driver/Mech AI">'+
-        '<div class="bt-brand">DRIVERS/MECH AI</div>'+
-        '<div class="bt-tag">Driver & Mechanic AI • Kannada • English • Hindi</div>'+
-        '<div class="bt-slogan">Safe Drives<br>Stronger Tomorrows</div>'+
-        '<div class="bt-road"></div>'+
-      '</header>'+
+        '<div class="bt-brand">Driver/Mech AI</div>'+
+        '<div class="bt-tag">AI Assistance • Voice • Inspection • Offline Sync</div>'+
+        '<div class="bt-slogan">"Safe Drives<br>Stronger Tomorrows"</div>'+
+        '<div class="bt-pills"><button class="bt-pill active" type="button">English</button><button class="bt-pill" type="button">ಕನ್ನಡ</button><button class="bt-pill" type="button">हिन्दी</button></div>'+
+      '</header><div class="login-road"></div>'+
       '<section class="bt-card">'+
-        '<h1 class="bt-title">Welcome Back</h1>'+
-        '<p class="bt-sub">Login to access your dashboard</p>'+
+        '<h1 class="bt-title">Welcome Back 👋</h1>'+
+        '<p class="bt-sub">Login to access driver telematics, AI triage & trip logs</p>'+
         '<label class="bt-label">Mobile Number</label>'+
-        '<div class="bt-inputwrap"><span class="bt-icon">📱</span><input id="maLoginMobile" class="bt-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number"></div>'+
-        '<label class="bt-label">Password</label>'+
+        '<div class="bt-inputwrap"><span class="bt-icon">📱</span><input id="maLoginMobile" class="bt-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number"><span style="position:absolute;right:13px;top:18px;font-size:10px;font-weight:900;color:#173d76">DRIVER ID</span></div>'+
+        '<label class="bt-label">Password / Secure PIN</label>'+
         '<div class="bt-inputwrap"><span class="bt-icon">🔒</span><input id="maLoginPass" class="bt-input" name="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" type="password" maxlength="64" placeholder="Enter password"><button id="maPassToggle" class="bt-eye" type="button" aria-label="Show password">👁️</button></div>'+
-        '<button id="maLoginBtn" class="bt-login" type="button">↪ &nbsp; Login</button>'+
+        '<button id="maLoginBtn" class="bt-login" type="button">🔐 &nbsp; SECURE LOGIN &nbsp; →</button>'+
         '<div id="maLoginErr" class="bt-error">'+esc(message||'')+'</div>'+
-        '<div class="bt-note">Mobile number is your username. Your password remains separate and protected.</div>'+
-      '</section>'+
-      '<section class="bt-features">'+
-        '<div class="bt-feature bt-f1"><b>📷</b>Photo<br>Support</div>'+
-        '<div class="bt-feature bt-f2"><b>🎙️</b>Voice<br>Guidance</div>'+
-        '<div class="bt-feature bt-f3"><b>Aಅ</b>Kannada<br>&amp; Hindi</div>'+
-        '<div class="bt-feature bt-f4"><b>🛡️</b>Reliable<br>Support</div>'+
-      '</section>'+
-      '<footer class="bt-footer">🚛 BALAJI TRANSPORTS<small>People Move • Businesses Grow • Together</small><small>Version 1.0.0</small></footer>';
+        '<div class="bt-note">Mobile number is your official Driver ID. Credentials are protected and remain private.</div>'+
+      '</section></div>';
     document.body.appendChild(root);
     const passInput=root.querySelector('#maLoginPass'), passToggle=root.querySelector('#maPassToggle');
     passToggle.onclick=()=>{const show=passInput.type==='password';passInput.type=show?'text':'password';passToggle.textContent=show?'🙈':'👁️';passToggle.setAttribute('aria-label',show?'Hide password':'Show password');};
     root.querySelector('#maLoginBtn').onclick=function(){
       const mobile=root.querySelector('#maLoginMobile').value.replace(/\D/g,''),pass=passInput.value,err=root.querySelector('#maLoginErr'),btn=root.querySelector('#maLoginBtn');
       if(!/^\d{10}$/.test(mobile)||!pass){err.textContent='Enter the 10-digit mobile number and password.';return;}
-      btn.disabled=true;btn.textContent='⏳ LOGGING IN...';err.textContent='';
-      const previousHttp=window.appHttpResult;
-      let finished=false;
-      const finish=(res)=>{if(finished)return;finished=true;window.appHttpResult=previousHttp;finishLoginUser(res,root,btn,err);};
-      window.appHttpResult=function(raw){finish(normalizeLoginResponse(raw));};
-      try{
-        AndroidBridge.cloudRequest('POST',AndroidBridge.getSharedApiUrl(),JSON.stringify({action:'login',username:mobile,password:pass}));
-      }catch(e){finish({ok:false,error:e.message||String(e)});}
-      setTimeout(()=>{if(!finished){finished=true;window.appHttpResult=previousHttp;err.textContent='Login request timed out. Please try again.';btn.disabled=false;btn.textContent='↪  Login';}},70000);
+      btn.disabled=true;btn.textContent='⏳ SECURE LOGIN…';err.textContent='';
+      apiRequest('login',{username:mobile,password:pass},res=>finishLoginUser(res,root,btn,err));
     };
+    root.querySelector('#maLoginMobile').addEventListener('keydown',e=>{if(e.key==='Enter')root.querySelector('#maLoginPass').focus()});
+    root.querySelector('#maLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')root.querySelector('#maLoginBtn').click()});
   }
-  window.showLogin=renderLogin;
 
-  function page(title,html){
+function page(title,html){
     hideOld();document.getElementById('maLogin')?.remove();document.getElementById('maApp')?.remove();
     const root=document.createElement('div');root.id='maApp';root.innerHTML='<div class="ma-bar"><button class="ma-icon" onclick="maDashboard()">‹</button><div class="ma-title">'+esc(title)+'<small>'+esc(roleLabel(getUser()?.role))+' • '+esc(name())+'</small></div><button class="ma-icon" onclick="maDashboard()">⌂</button></div><main class="ma-main">'+html+'</main>';app.appendChild(root);
   }
