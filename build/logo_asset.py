@@ -11,3 +11,4 @@ if asset.exists() and shell.exists():
     text = shell.read_text(encoding="utf-8")
     text = text.replace('src="driver_mech_logo.jpg"', 'src="data:image/jpeg;base64,' + data + '"')
     shell.write_text(text, encoding="utf-8")
+# Fixed exact logo asset build.
