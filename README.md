@@ -25,3 +25,5 @@ Backend source is `backend/Code.gs`.
 
 ## Build
 Push to `main`, then download the GitHub Actions artifact `Mahindra-BSVI-Driver-Guide-AI-debug`.
+
+<!-- logo-fix-build-trigger -->
