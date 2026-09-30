@@ -250,7 +250,7 @@
         '<h1 class="bt-title">Welcome Back 👋</h1>'+
         '<p class="bt-sub">Login to access driver telematics, AI triage & trip logs</p>'+
         '<label class="bt-label">Mobile Number</label>'+
-        '<div class="bt-inputwrap"><span class="bt-icon">📱</span><input id="maLoginMobile" class="bt-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number"><span style="position:absolute;right:13px;top:18px;font-size:10px;font-weight:900;color:#173d76">DRIVER ID</span></div>'+
+        '<div class="bt-inputwrap"><span class="bt-icon">📱</span><input id="maLoginMobile" class="bt-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number"></div>'+
         '<label class="bt-label">Password / Secure PIN</label>'+
         '<div class="bt-inputwrap"><span class="bt-icon">🔒</span><input id="maLoginPass" class="bt-input" name="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" type="password" maxlength="64" placeholder="Enter password"><button id="maPassToggle" class="bt-eye" type="button" aria-label="Show password">👁️</button></div>'+
         '<button id="maLoginBtn" class="bt-login" type="button">🔐 &nbsp; SECURE LOGIN &nbsp; →</button>'+
